@@ -1,17 +1,29 @@
 import { Parametres } from '@/types'
 
-export function getSemaine(date: Date = new Date()): string {
-  const d = new Date(date)
-  d.setHours(0, 0, 0, 0)
-  d.setDate(d.getDate() + 4 - (d.getDay() || 7))
-  const yearStart = new Date(d.getFullYear(), 0, 1)
-  const weekNo = Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7)
-  return `${d.getFullYear()}-S${weekNo.toString().padStart(2, '0')}`
+// Semaine ISO en heure de Paris — identique pour tous les utilisateurs
+export function getSemaine(date?: Date): string {
+  // Convertir en heure Paris (Europe/Paris)
+  const now = date || new Date()
+  const pariStr = now.toLocaleString('en-CA', { timeZone: 'Europe/Paris', hour12: false })
+  // en-CA format: "2026-06-25, 14:30:00"
+  const d = new Date(pariStr.replace(', ', 'T'))
+
+  // Calcul semaine ISO (lundi = début de semaine)
+  const dayOfWeek = d.getDay() || 7 // 1=lundi, 7=dimanche
+  const monday = new Date(d)
+  monday.setDate(d.getDate() - dayOfWeek + 1)
+  monday.setHours(0, 0, 0, 0)
+
+  const yearStart = new Date(monday.getFullYear(), 0, 1)
+  const weekNo = Math.ceil(((monday.getTime() - yearStart.getTime()) / 86400000 + 1) / 7)
+
+  return `${monday.getFullYear()}-S${weekNo.toString().padStart(2, '0')}`
 }
 
 export function formatMoney(amount: number): string {
-  return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
-    .format(amount).replace('$US', '$').replace('USD', '$')
+  return new Intl.NumberFormat('fr-FR', {
+    style: 'currency', currency: 'USD', maximumFractionDigits: 0
+  }).format(amount).replace('$US', '$').replace('USD', '$')
 }
 
 export function formatKg(kg: number): string {
@@ -23,4 +35,16 @@ export function calculerSalaire(totalVendu: number, params: Parametres): number 
   const depassement = totalVendu - params.quotaIndividuel
   const nbPaliers = Math.floor(depassement / params.bonusPalier)
   return params.salaireBase + nbPaliers * params.bonusMontant
+}
+
+// Retourne les N dernières semaines ISO (Paris) à garder
+export function getSemainesAGarder(nbSemaines: number): string[] {
+  const semaines: string[] = []
+  const now = new Date()
+  for (let i = 0; i < nbSemaines; i++) {
+    const d = new Date(now)
+    d.setDate(d.getDate() - i * 7)
+    semaines.push(getSemaine(d))
+  }
+  return semaines
 }
