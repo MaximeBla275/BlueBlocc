@@ -162,7 +162,7 @@ export async function getParametres(): Promise<Parametres> {
     supabase.from('treso').select('*').eq('id', 1).single(),
   ])
   return {
-    nomGang: p ? String(p.nom_gang) : 'Blue Blocc',
+    nomGang: p ? String(p.nom_gang) : 'Rollin Blues',
     tresoCapitalInitial: t ? Number(t.capital_initial) : 0,
     tresoObjectif: t ? Number(t.objectif) : 1500000,
     quotaIndividuel: p ? Number(p.quota_individuel) : 600,
@@ -475,8 +475,14 @@ export async function nettoyerHistorique(): Promise<void> {
   const { data: p } = await supabase.from('parametres').select('nb_semaines_historique').eq('id', 1).single()
   const nbSemaines = p ? Number(p.nb_semaines_historique) : 5
 
+  // Calculer les semaines à garder
   const { getSemainesAGarder } = await import('./utils')
   const aGarder = getSemainesAGarder(nbSemaines)
+
+  // Supprimer les ventes plus anciennes
+  const { data: toutesVentes } = await supabase.from('ventes').select('semaine')
+  const semainesDansDb = Array.from(new Set((toutesVentes || []).map((v: Record<string, unknown>) => String(v.semaine))))
+  const aSupprimer = semainesDansDb.filter(s => !aGarder.includes(s))
 
   // Supprimer les demandes traitées de plus de X semaines
   const cutoffDate = new Date()
@@ -486,14 +492,11 @@ export async function nettoyerHistorique(): Promise<void> {
     .neq('statut', 'en_attente')
     .lt('created_at', cutoffDate.toISOString())
 
-  const { data: toutesVentes } = await supabase.from('ventes').select('semaine')
-  const semainesDansDb = Array.from(new Set((toutesVentes || []).map((v: Record<string, unknown>) => String(v.semaine))))
-  const aSupprimer = semainesDansDb.filter(s => !aGarder.includes(s))
-
   if (aSupprimer.length > 0) {
     for (const semaine of aSupprimer) {
       await supabase.from('ventes').delete().eq('semaine', semaine)
     }
+    // Aussi nettoyer les mouvements tréso trop anciens (garder 200 max)
     const { data: mouvements } = await supabase
       .from('treso_mouvements')
       .select('id')
@@ -512,10 +515,10 @@ export async function getNbSemainesHistorique(): Promise<number> {
   return data ? Number(data.nb_semaines_historique) : 5
 }
 
-export async function supprimerDemande(demandeId: string): Promise<void> {
-  await supabase.from('demandes').delete().eq('id', demandeId)
-}
-
 export async function setNbSemainesHistorique(nb: number): Promise<void> {
   await supabase.from('parametres').update({ nb_semaines_historique: nb }).eq('id', 1)
+}
+
+export async function supprimerDemande(demandeId: string): Promise<void> {
+  await supabase.from('demandes').delete().eq('id', demandeId)
 }
