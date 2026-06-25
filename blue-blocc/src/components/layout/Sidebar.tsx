@@ -42,7 +42,7 @@ export default function Sidebar() {
             <span className="text-sm font-black text-white">B</span>
           </div>
           <div>
-            <div className="font-black text-sm text-white leading-none">BLUE BLOCC</div>
+            <div className="font-black text-sm text-white leading-none">ROLLIN BLUES</div>
             <div className="text-xs mt-0.5" style={{ color: 'var(--blocc-muted)' }}>Manager</div>
           </div>
         </div>
