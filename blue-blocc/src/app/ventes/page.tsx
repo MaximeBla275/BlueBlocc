@@ -91,7 +91,7 @@ export default function VentesPage() {
 
     if (formType === 'normale') {
       const cash = Number(cashSale)
-      if (cash <= 0) { setError('Cash encaissé invalide'); setSubmitting(false); return }
+      if (cash <= 0) { setError('Ventes encaissées invalide'); setSubmitting(false); return }
       await addVente({ membreId: profile.uid, membrePseudo: profile.pseudo, itemId: selectedItemId, itemNom: item?.nom || selectedItemId, quantite: qty, cashSale: cash, prixAchatUnitaire: prixAchat, coutAchat, benefSale: cash - coutAchat, type: 'normale' })
     } else {
       await addVente({ membreId: profile.uid, membrePseudo: profile.pseudo, itemId: selectedItemId, itemNom: item?.nom || selectedItemId, quantite: qty, cashSale: 0, prixAchatUnitaire: prixAchat, coutAchat, benefSale: -coutAchat, type: 'nulle' })
@@ -144,8 +144,8 @@ export default function VentesPage() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
             { label: 'Kg vendus', value: formatKg(totalVendu), color: '#3b82f6' },
-            { label: 'Cash sale', value: formatMoney(totalCashSale), color: '#60a5fa' },
-            { label: 'Bénéf sale', value: formatMoney(totalBenefSale), color: '#4ade80' },
+            { label: 'Ventes', value: formatMoney(totalCashSale), color: '#60a5fa' },
+            { label: 'Profit', value: formatMoney(totalBenefSale), color: '#4ade80' },
             { label: 'Pertes', value: formatMoney(totalPertes), color: '#f87171' },
           ].map(s => (
             <div key={s.label} className="card p-4">
@@ -261,7 +261,7 @@ export default function VentesPage() {
               {formType === 'normale' && (
                 <div>
                   <label className="label flex items-center gap-2">
-                    Cash sale encaissé ($)
+                    Ventes encaissé ($)
                     {selectedItem?.prixVenteMoyen && qty > 0 && !cashManual && (
                       <span className="text-xs font-normal px-2 py-0.5 rounded" style={{ background: 'rgba(96,165,250,0.15)', color: '#60a5fa' }}>
                         Pré-rempli · {formatMoney(selectedItem.prixVenteMoyen)}/kg × {qty}kg
@@ -282,12 +282,12 @@ export default function VentesPage() {
                     <span className="font-semibold text-white">{formatMoney(prix)}/kg</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span style={{ color: 'var(--blocc-muted)' }}>Coût achat marchandise</span>
+                    <span style={{ color: 'var(--blocc-muted)' }}>Coût marchandise</span>
                     <span className="font-semibold text-white">{coutEstime !== null ? formatMoney(coutEstime) : '—'}</span>
                   </div>
                   {formType === 'normale' && benefEstime !== null && (
                     <div className="flex justify-between text-sm border-t pt-2" style={{ borderColor: 'var(--blocc-border)' }}>
-                      <span style={{ color: 'var(--blocc-muted)' }}>Bénéf sale estimé</span>
+                      <span style={{ color: 'var(--blocc-muted)' }}>Profit estimé</span>
                       <span className="font-bold" style={{ color: benefEstime >= 0 ? '#4ade80' : '#f87171' }}>{formatMoney(benefEstime)}</span>
                     </div>
                   )}
