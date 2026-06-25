@@ -129,18 +129,21 @@ export async function updatePassword(uid: string, password: string): Promise<voi
 
 // ─── CUSTOM ROLES ─────────────────────────────────────────────────────────────
 export async function getCustomRoles(): Promise<CustomRole[]> {
-  const { data } = await supabase.from('custom_roles').select('*').order('created_at')
+  const { data } = await supabase.from('custom_roles').select('*').order('ordre', { ascending: true }).order('created_at')
   return (data || []).map((r: Record<string, unknown>) => ({
     id: String(r.id),
     nom: String(r.nom),
     permissions: (r.permissions as string[]) as Permission[],
     couleur: String(r.couleur),
+    ordre: Number(r.ordre ?? 0),
     createdAt: String(r.created_at),
   }))
 }
 
 export async function createCustomRole(nom: string, permissions: Permission[], couleur: string): Promise<void> {
-  await supabase.from('custom_roles').insert({ id: genId('role'), nom: nom.trim(), permissions, couleur })
+  const { data: existing } = await supabase.from('custom_roles').select('ordre').order('ordre', { ascending: false }).limit(1)
+  const nextOrdre = existing && existing.length > 0 ? Number((existing[0] as Record<string, unknown>).ordre) + 1 : 0
+  await supabase.from('custom_roles').insert({ id: genId('role'), nom: nom.trim(), permissions, couleur, ordre: nextOrdre })
 }
 
 export async function updateCustomRole(roleId: string, data: Partial<Pick<CustomRole, 'nom' | 'permissions' | 'couleur'>>): Promise<void> {
@@ -521,4 +524,8 @@ export async function setNbSemainesHistorique(nb: number): Promise<void> {
 
 export async function supprimerDemande(demandeId: string): Promise<void> {
   await supabase.from('demandes').delete().eq('id', demandeId)
+}
+
+export async function updateCustomRoleOrdre(roles: { id: string; ordre: number }[]): Promise<void> {
+  await Promise.all(roles.map(r => supabase.from('custom_roles').update({ ordre: r.ordre }).eq('id', r.id)))
 }
