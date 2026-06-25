@@ -99,7 +99,7 @@ export default function LeadDashboard() {
         {/* Header */}
         <div className="flex items-start justify-between flex-wrap gap-4">
           <div>
-            <h1 className="text-2xl font-black text-white">{params?.nomGang || 'Blue Blocc'} — Lead Panel</h1>
+            <h1 className="text-2xl font-black text-white">{params?.nomGang || 'Rollin Blues'} — Lead Panel</h1>
             <p className="text-sm mt-1" style={{ color: 'var(--blocc-muted)' }}>Connecté : {profile?.pseudo} · {profile?.role}</p>
           </div>
           <div className="flex items-center gap-2">
