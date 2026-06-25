@@ -48,3 +48,20 @@ export function getSemainesAGarder(nbSemaines: number): string[] {
   }
   return semaines
 }
+
+// Retourne le label et la couleur du rôle à afficher (secondaire en priorité)
+export function getRoleDisplay(
+  role: string,
+  customRoleId: string | undefined,
+  customRoles: { id: string; nom: string; couleur: string }[]
+): { label: string; couleur: string } {
+  // Rôle secondaire en priorité
+  if (customRoleId) {
+    const cr = customRoles.find(r => r.id === customRoleId)
+    if (cr) return { label: cr.nom, couleur: cr.couleur }
+  }
+  // Sinon rôle principal
+  if (role === 'lead') return { label: 'Lead', couleur: '#fbbf24' }
+  if (role === 'co-lead') return { label: 'Co-Lead', couleur: '#60a5fa' }
+  return { label: 'Membre', couleur: '#6b82a8' }
+}
