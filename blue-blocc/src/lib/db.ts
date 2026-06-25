@@ -475,11 +475,17 @@ export async function nettoyerHistorique(): Promise<void> {
   const { data: p } = await supabase.from('parametres').select('nb_semaines_historique').eq('id', 1).single()
   const nbSemaines = p ? Number(p.nb_semaines_historique) : 5
 
-  // Calculer les semaines à garder
   const { getSemainesAGarder } = await import('./utils')
   const aGarder = getSemainesAGarder(nbSemaines)
 
-  // Supprimer les ventes plus anciennes
+  // Supprimer les demandes traitées de plus de X semaines
+  const cutoffDate = new Date()
+  cutoffDate.setDate(cutoffDate.getDate() - nbSemaines * 7)
+  await supabase.from('demandes')
+    .delete()
+    .neq('statut', 'en_attente')
+    .lt('created_at', cutoffDate.toISOString())
+
   const { data: toutesVentes } = await supabase.from('ventes').select('semaine')
   const semainesDansDb = Array.from(new Set((toutesVentes || []).map((v: Record<string, unknown>) => String(v.semaine))))
   const aSupprimer = semainesDansDb.filter(s => !aGarder.includes(s))
@@ -488,7 +494,6 @@ export async function nettoyerHistorique(): Promise<void> {
     for (const semaine of aSupprimer) {
       await supabase.from('ventes').delete().eq('semaine', semaine)
     }
-    // Aussi nettoyer les mouvements tréso trop anciens (garder 200 max)
     const { data: mouvements } = await supabase
       .from('treso_mouvements')
       .select('id')
