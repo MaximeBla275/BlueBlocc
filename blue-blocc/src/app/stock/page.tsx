@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import AppLayout from '@/components/layout/AppLayout'
 import { useAuth } from '@/lib/auth-context'
+import { useRealtime } from '@/lib/useRealtime'
 import { getEntrepots, getItems, createEntrepot, updateEntrepot, rechargerEntrepot, deleteEntrepot, transfererStock } from '@/lib/db'
 import { Entrepot, Item } from '@/types'
 import { formatKg, formatMoney } from '@/lib/utils'
@@ -116,6 +117,8 @@ export default function StockPage() {
       </div>
     </AppLayout>
   )
+
+  useRealtime(load)
 
   return (
     <AppLayout>
