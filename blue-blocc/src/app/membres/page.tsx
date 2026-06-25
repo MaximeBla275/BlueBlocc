@@ -6,7 +6,7 @@ import { useAuth } from '@/lib/auth-context'
 import { useRealtime } from '@/lib/useRealtime'
 import { getMembers, getVentes, getParametres, getCustomRoles, updateMemberRole, updateMemberPassword, deleteMember, createMember, createCustomRole, updateCustomRole, deleteCustomRole, ALL_PERMISSIONS } from '@/lib/db'
 import { Member, Parametres, CustomRole, Permission, Vente } from '@/types'
-import { formatKg, formatMoney, getSemaine, calculerSalaire } from '@/lib/utils'
+import { formatKg, formatMoney, getSemaine, calculerSalaire, getRoleDisplay } from '@/lib/utils'
 import { Pencil, Trash2, Plus, Check, X, Shield } from 'lucide-react'
 
 export default function MembresPage() {
@@ -63,13 +63,7 @@ export default function MembresPage() {
     }))
   }, [membres, ventes, params])
 
-  const getRoleDisplay = (m: Member) => {
-    if (m.role === 'lead') return { label: 'Lead', color: '#fbbf24' }
-    if (m.role === 'co-lead') return { label: 'Co-Lead', color: '#60a5fa' }
-    const cr = customRoles.find(r => r.id === m.customRoleId)
-    if (cr) return { label: cr.nom, color: cr.couleur }
-    return { label: 'Membre', color: '#6b82a8' }
-  }
+
 
   const togglePerm = (perms: Permission[], perm: Permission): Permission[] =>
     perms.includes(perm) ? perms.filter(p => p !== perm) : [...perms, perm]
@@ -224,15 +218,13 @@ export default function MembresPage() {
                     <option value="lead">Lead</option>
                   </select>
                 </div>
-                {newRole === 'membre' && (
-                  <div>
-                    <label className="label">Rôle personnalisé</label>
-                    <select className="input" value={newCustomRoleId} onChange={e => setNewCustomRoleId(e.target.value)}>
-                      <option value="">Membre standard</option>
-                      {customRoles.map(r => <option key={r.id} value={r.id}>{r.nom}</option>)}
-                    </select>
-                  </div>
-                )}
+                <div>
+                  <label className="label">Rôle personnalisé (optionnel)</label>
+                  <select className="input" value={newCustomRoleId} onChange={e => setNewCustomRoleId(e.target.value)}>
+                    <option value="">— Aucun —</option>
+                    {customRoles.map(r => <option key={r.id} value={r.id}>{r.nom}</option>)}
+                  </select>
+                </div>
               </div>
               <div className="flex gap-2">
                 <button type="submit" className="btn-primary">Créer</button>
@@ -251,7 +243,7 @@ export default function MembresPage() {
             return a.pseudo.localeCompare(b.pseudo)
           }).map(m => {
             const stats = statsParMembre[m.uid]
-            const rd = getRoleDisplay(m)
+            const rd = getRoleDisplay(m.role, m.customRoleId, customRoles)
             const isMe = m.uid === profile?.uid
             return (
               <div key={m.uid} className="card p-5" style={{ border: isMe ? '1px solid rgba(30,107,255,0.3)' : undefined }}>
@@ -263,7 +255,7 @@ export default function MembresPage() {
                         {m.pseudo}
                         {isMe && <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'rgba(30,107,255,0.2)', color: '#60a5fa' }}>moi</span>}
                       </div>
-                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full mt-0.5 inline-block" style={{ background: `${rd.color}20`, color: rd.color }}>{rd.label}</span>
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full mt-0.5 inline-block" style={{ background: `${rd.couleur}20`, color: rd.couleur }}>{rd.label}</span>
                     </div>
                   </div>
 
@@ -290,12 +282,10 @@ export default function MembresPage() {
                             <option value="co-lead">Co-Lead</option>
                             <option value="lead">Lead</option>
                           </select>
-                          {editRole === 'membre' && (
-                            <select className="input text-xs py-1 h-8" value={editCustomRoleId} onChange={e => setEditCustomRoleId(e.target.value)}>
-                              <option value="">Standard</option>
-                              {customRoles.map(r => <option key={r.id} value={r.id}>{r.nom}</option>)}
-                            </select>
-                          )}
+                          <select className="input text-xs py-1 h-8" value={editCustomRoleId} onChange={e => setEditCustomRoleId(e.target.value)}>
+                            <option value="">— Aucun —</option>
+                            {customRoles.map(r => <option key={r.id} value={r.id}>{r.nom}</option>)}
+                          </select>
                           <button className="btn-primary text-xs py-1 px-2" onClick={async () => { await updateMemberRole(m.uid, editRole, editCustomRoleId || undefined); setEditMemberId(null); load() }}><Check size={13} /></button>
                           <button className="btn-ghost text-xs py-1 px-2" onClick={() => setEditMemberId(null)}><X size={13} /></button>
                         </div>
