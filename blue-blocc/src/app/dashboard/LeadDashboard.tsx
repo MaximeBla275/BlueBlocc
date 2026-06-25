@@ -12,7 +12,7 @@ import {
   createEntrepot, updateEntrepot, rechargerEntrepot, deleteEntrepot, resetTreso
 } from '@/lib/db'
 import { Vente, Member, Entrepot, Parametres, Treso, Item, DemandeStock } from '@/types'
-import { formatMoney, formatKg, getSemaine, calculerSalaire } from '@/lib/utils'
+import { formatMoney, formatKg, getSemaine, calculerSalaire, getRoleDisplay } from '@/lib/utils'
 import {
   ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Package,
   Users, DollarSign, Plus, Pencil, Trash2, Check, X, Save,
@@ -22,7 +22,7 @@ import {
 type Tab = 'global' | 'compta' | 'membres' | 'payes'
 
 export default function LeadDashboard() {
-  const { profile, hasPermission, isLead } = useAuth()
+  const { profile, hasPermission, isLead, customRoles } = useAuth()
   const [tab, setTab] = useState<Tab>('global')
   const [semaine, setSemaine] = useState(getSemaine())
   const [semaines, setSemaines] = useState<string[]>([])
@@ -135,7 +135,7 @@ export default function LeadDashboard() {
           <div className="flex items-center justify-center h-40"><div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" /></div>
         ) : (
           <>
-            {tab === 'global' && <TabGlobal {...{ tresoSolde, tresoObjectif, tresoPct, totalVendu, totalCashSale, totalBenefSale, totalCouts, totalPertes, stockTotal, capaciteTotale, progressGlobal, params, statsMembres, semaine, treso }} />}
+            {tab === 'global' && <TabGlobal {...{ tresoSolde, tresoObjectif, tresoPct, totalVendu, totalCashSale, totalBenefSale, totalCouts, totalPertes, stockTotal, capaciteTotale, progressGlobal, params, statsMembres, semaine, treso, customRoles }} />}
             {tab === 'compta' && <TabCompta {...{ entrepots, items, ventes, semaine, params, load }} />}
             {tab === 'membres' && <TabMembres {...{ membres, statsMembres, params, semaine, load }} />}
             {tab === 'payes' && <TabPayes {...{ statsMembres, params, load }} />}
@@ -265,7 +265,10 @@ function TabGlobal({ tresoSolde, tresoObjectif, tresoPct, totalVendu, totalCashS
                   <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold" style={{ background: 'var(--blocc-blue)' }}>{m.pseudo[0].toUpperCase()}</div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm font-semibold text-white">{m.pseudo} <span className="text-xs font-normal" style={{ color: 'var(--blocc-muted)' }}>· {m.role}</span></span>
+                      <span className="text-sm font-semibold text-white flex items-center gap-2 flex-wrap">
+                        {m.pseudo}
+                        {(() => { const rd = getRoleDisplay(m.role, m.customRoleId, customRoles); return <span className="text-xs px-1.5 py-0.5 rounded-full font-semibold" style={{ background: rd.couleur + '22', color: rd.couleur }}>{rd.label}</span> })()}
+                      </span>
                       <span className="text-xs" style={{ color: 'var(--blocc-muted)' }}>{formatKg(m.kg)} / {formatKg(params.quotaIndividuel)}</span>
                     </div>
                     <div className="progress-bar"><div className="progress-fill" style={{ width: `${m.pct}%`, background: m.pct >= 100 ? 'linear-gradient(90deg,#22c55e,#4ade80)' : undefined }} /></div>
