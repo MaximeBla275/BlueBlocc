@@ -4,10 +4,10 @@ import React, { useEffect, useMemo, useState } from 'react'
 import AppLayout from '@/components/layout/AppLayout'
 import { useAuth } from '@/lib/auth-context'
 import { useRealtime } from '@/lib/useRealtime'
-import { getMembers, getVentes, getParametres, getCustomRoles, updateMemberRole, updateMemberPassword, deleteMember, createMember, createCustomRole, updateCustomRole, deleteCustomRole, ALL_PERMISSIONS } from '@/lib/db'
+import { getMembers, getVentes, getParametres, getCustomRoles, updateMemberRole, updateMemberPassword, deleteMember, createMember, createCustomRole, updateCustomRole, deleteCustomRole, updateCustomRoleOrdre, ALL_PERMISSIONS } from '@/lib/db'
 import { Member, Parametres, CustomRole, Permission, Vente } from '@/types'
 import { formatKg, formatMoney, getSemaine, calculerSalaire, getRoleDisplay } from '@/lib/utils'
-import { Pencil, Trash2, Plus, Check, X, Shield } from 'lucide-react'
+import { Pencil, Trash2, Plus, Check, X, Shield, ChevronUp, ChevronDown } from 'lucide-react'
 
 export default function MembresPage() {
   const { profile, isLead, hasPermission } = useAuth()
@@ -188,6 +188,26 @@ export default function MembresPage() {
                       </div>
                       <div className="flex gap-2">
                         <button className="p-2 rounded-lg" style={{ color: 'var(--blocc-muted)', background: 'rgba(255,255,255,0.05)' }}
+                          title="Monter"
+                          onClick={async () => {
+                            const idx = customRoles.findIndex(r => r.id === role.id)
+                            if (idx <= 0) return
+                            const newRoles = [...customRoles]
+                            const tmp = newRoles[idx - 1]; newRoles[idx - 1] = newRoles[idx]; newRoles[idx] = tmp
+                            await updateCustomRoleOrdre(newRoles.map((r, i) => ({ id: r.id, ordre: i })))
+                            load()
+                          }}><ChevronUp size={13} /></button>
+                        <button className="p-2 rounded-lg" style={{ color: 'var(--blocc-muted)', background: 'rgba(255,255,255,0.05)' }}
+                          title="Descendre"
+                          onClick={async () => {
+                            const idx = customRoles.findIndex(r => r.id === role.id)
+                            if (idx >= customRoles.length - 1) return
+                            const newRoles = [...customRoles]
+                            const tmp = newRoles[idx + 1]; newRoles[idx + 1] = newRoles[idx]; newRoles[idx] = tmp
+                            await updateCustomRoleOrdre(newRoles.map((r, i) => ({ id: r.id, ordre: i })))
+                            load()
+                          }}><ChevronDown size={13} /></button>
+                        <button className="p-2 rounded-lg" style={{ color: 'var(--blocc-muted)', background: 'rgba(255,255,255,0.05)' }}
                           onClick={() => { setEditRoleId(role.id); setEditRoleNom(role.nom); setEditRoleCouleur(role.couleur); setEditRolePerms(role.permissions) }}><Pencil size={13} /></button>
                         <button className="p-2 rounded-lg" style={{ color: '#f87171', background: 'rgba(239,68,68,0.1)' }}
                           onClick={async () => { if (!confirm('Supprimer ce rôle ?')) return; await deleteCustomRole(role.id); load() }}><Trash2 size={13} /></button>
@@ -237,9 +257,17 @@ export default function MembresPage() {
         {/* Liste membres */}
         <div className="space-y-3">
           {[...membres].sort((a, b) => {
-            const order = ['lead', 'co-lead']
-            const ai = order.indexOf(a.role); const bi = order.indexOf(b.role)
+            // Rôle système d'abord (lead > co-lead > autre)
+            const sysOrder = ['lead', 'co-lead']
+            const ai = sysOrder.indexOf(a.role); const bi = sysOrder.indexOf(b.role)
             if (ai !== bi) return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi)
+            // Ensuite par ordre du rôle secondaire
+            const aCr = a.customRoleId ? customRoles.find(r => r.id === a.customRoleId) : null
+            const bCr = b.customRoleId ? customRoles.find(r => r.id === b.customRoleId) : null
+            const aOrdre = aCr ? aCr.ordre : 9999
+            const bOrdre = bCr ? bCr.ordre : 9999
+            if (aOrdre !== bOrdre) return aOrdre - bOrdre
+            // Enfin par pseudo
             return a.pseudo.localeCompare(b.pseudo)
           }).map(m => {
             const stats = statsParMembre[m.uid]
