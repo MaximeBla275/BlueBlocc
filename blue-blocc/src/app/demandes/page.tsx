@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import AppLayout from '@/components/layout/AppLayout'
 import { useAuth } from '@/lib/auth-context'
+import { useRealtime } from '@/lib/useRealtime'
 import { getDemandes, addDemande, traiterDemande, getEntrepots, getItems } from '@/lib/db'
 import { DemandeStock, Entrepot, Item } from '@/types'
 import { formatMoney, formatKg } from '@/lib/utils'
@@ -73,6 +74,8 @@ export default function DemandesPage() {
   const selectedItem = items.find(i => i.id === selectedItemId)
   const qty = Number(quantite)
   const prixAchat = Number(prixAchatInput)
+
+  useRealtime(load)
 
   return (
     <AppLayout>
