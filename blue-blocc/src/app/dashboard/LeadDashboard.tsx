@@ -75,7 +75,20 @@ export default function LeadDashboard() {
       const salaire = calculerSalaire(kg, params)
       const pct = Math.min(100, (kg / params.quotaIndividuel) * 100)
       return { ...m, kg, cashSale, benefSale, pertes, salaire, pct }
-    }).sort((a, b) => b.kg - a.kg)
+    }).sort((a, b) => {
+      // Rôle système d'abord
+      const sysOrder = ['lead', 'co-lead']
+      const ai = sysOrder.indexOf(a.role); const bi = sysOrder.indexOf(b.role)
+      if (ai !== bi) return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi)
+      // Ordre du rôle secondaire
+      const aCr = a.customRoleId ? customRoles.find((r: any) => r.id === a.customRoleId) : null
+      const bCr = b.customRoleId ? customRoles.find((r: any) => r.id === b.customRoleId) : null
+      const aOrdre = aCr ? (aCr as any).ordre : 9999
+      const bOrdre = bCr ? (bCr as any).ordre : 9999
+      if (aOrdre !== bOrdre) return aOrdre - bOrdre
+      // Enfin par kg vendus
+      return b.kg - a.kg
+    })
   }, [membres, ventes, params])
 
   const semaineIdx = semaines.indexOf(semaine)
@@ -642,10 +655,10 @@ function TabMembres({ membres, statsMembres, params, semaine, load, customRoles 
                           <button className="text-xs btn-primary py-0.5 px-2" onClick={async () => { await updateMemberRole(m.uid, editRole, editCustomRoleId || undefined); setEditRoleId(null); load() }}>OK</button>
                           <button className="text-xs btn-ghost py-0.5 px-2" onClick={() => setEditRoleId(null)}>×</button>
                         </div>
-                       ) : (
-                        <div className="mt-0.5 flex items-center gap-2">
-                          {(() => { const rd = getRoleDisplay(m.role, m.customRoleId, customRoles); return <span className="text-xs px-2 py-0.5 rounded-full font-semibold" style={{ background: rd.couleur + '22', color: rd.couleur }}>{rd.label}</span> })()}
-                          <button className="opacity-60 hover:opacity-100" style={{ color: 'var(--blocc-muted)' }} onClick={() => { setEditRoleId(m.uid); setEditRole(m.role); setEditCustomRoleId(m.customRoleId || '') }}><Pencil size={11} /></button>
+                      ) : (
+                        <div className="text-xs mt-0.5 flex items-center gap-2" style={{ color: 'var(--blocc-muted)' }}>
+                          {m.role}
+                          <button className="opacity-60 hover:opacity-100" onClick={() => { setEditRoleId(m.uid); setEditRole(m.role); setEditCustomRoleId(m.customRoleId || '') }}><Pencil size={11} /></button>
                         </div>
                       )}
                     </div>
