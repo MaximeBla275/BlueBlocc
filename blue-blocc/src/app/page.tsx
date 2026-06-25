@@ -255,7 +255,7 @@ export default function MembresPage() {
                         {m.pseudo}
                         {isMe && <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'rgba(30,107,255,0.2)', color: '#60a5fa' }}>moi</span>}
                       </div>
-                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full mt-0.5 inline-block" style={{ background: `${rd.couleur}20`, color: rd.color }}>{rd.label}</span>
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full mt-0.5 inline-block" style={{ background: `${rd.couleur}20`, color: rd.couleur }}>{rd.label}</span>
                     </div>
                   </div>
 
