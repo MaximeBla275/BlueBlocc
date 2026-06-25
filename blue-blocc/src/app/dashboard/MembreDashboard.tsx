@@ -21,16 +21,16 @@ export default function MembreDashboard() {
   const [semaine, setSemaine] = useState(getSemaine())
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    const load = async () => {
+  const load = async () => {
       setLoading(true)
       const [v, m, e, p, t, s] = await Promise.all([getVentes({ semaine }), getMembers(), getEntrepots(), getParametres(), getTreso(), getSemaines()])
       setVentes(v); setMembres(m); setEntrepots(e); setParams(p); setTreso(t)
       setSemaines(Array.from(new Set([getSemaine(), ...s])).sort().reverse())
       setLoading(false)
-    }
-    load()
-  }, [semaine])
+  }
+
+  useEffect(() => { load() }, [semaine])
+  useRealtime(load)
 
   const ventesNormales = ventes.filter(v => v.type === 'normale')
   const totalVendu = ventesNormales.reduce((s, v) => s + v.quantite, 0)
@@ -54,8 +54,6 @@ export default function MembreDashboard() {
   const tresoObjectif = params?.tresoObjectif || 1500000
   const tresoSolde = treso?.solde || 0
   const tresoPct = Math.min(100, (tresoSolde / tresoObjectif) * 100)
-
-  useRealtime(load)
 
   return (
     <AppLayout>
