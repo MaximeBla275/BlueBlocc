@@ -7,7 +7,7 @@ import { useAuth } from '@/lib/auth-context'
 import { useRealtime } from '@/lib/useRealtime'
 import { getVentes, getMembers, getEntrepots, getParametres, getTreso, getSemaines } from '@/lib/db'
 import { Vente, Member, Entrepot, Parametres, Treso } from '@/types'
-import { formatMoney, formatKg, getSemaine, calculerSalaire } from '@/lib/utils'
+import { formatMoney, formatKg, getSemaine, calculerSalaire, getRoleDisplay } from '@/lib/utils'
 import { ChevronLeft, ChevronRight, CheckCircle, Package } from 'lucide-react'
 
 export default function MembreDashboard() {
@@ -178,7 +178,11 @@ export default function MembreDashboard() {
                         <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0" style={{ background: 'var(--blocc-blue)' }}>{m.pseudo[0].toUpperCase()}</div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between mb-1">
-                            <span className="text-sm font-semibold text-white">{m.pseudo} {m.uid === profile?.uid && <span className="text-xs" style={{ color: 'var(--blocc-muted)' }}>(moi)</span>}</span>
+                            <span className="text-sm font-semibold text-white flex items-center gap-2 flex-wrap">
+                          {m.pseudo}
+                          {m.uid === profile?.uid && <span className="text-xs" style={{ color: 'var(--blocc-muted)' }}>(moi)</span>}
+                          {(() => { const rd = getRoleDisplay(m.role, m.customRoleId, customRoles); return <span className="text-xs px-1.5 py-0.5 rounded-full font-semibold" style={{ background: rd.couleur + '22', color: rd.couleur }}>{rd.label}</span> })()}
+                        </span>
                             <span className="text-xs font-bold" style={{ color: m.pct >= 100 ? '#4ade80' : 'var(--blocc-muted)' }}>{Math.round(m.pct)}%</span>
                           </div>
                           <div className="progress-bar"><div className="progress-fill" style={{ width: `${m.pct}%`, background: m.pct >= 100 ? 'linear-gradient(90deg,#22c55e,#4ade80)' : undefined }} /></div>
