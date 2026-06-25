@@ -1,17 +1,24 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import AppLayout from '@/components/layout/AppLayout'
 import { useAuth } from '@/lib/auth-context'
-import { Key } from 'lucide-react'
+import { getNbSemainesHistorique, setNbSemainesHistorique } from '@/lib/db'
+import { Key, Clock } from 'lucide-react'
 
 export default function ParametresPage() {
-  const { profile, isLead, changePassword } = useAuth()
+  const { isLead, changePassword } = useAuth()
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [pwError, setPwError] = useState('')
   const [pwSuccess, setPwSuccess] = useState('')
   const [pwSaving, setPwSaving] = useState(false)
+  const [nbSemaines, setNbSemaines] = useState(5)
+  const [historiqueSaved, setHistoriqueSaved] = useState(false)
+
+  useEffect(() => {
+    if (isLead) getNbSemainesHistorique().then(setNbSemaines)
+  }, [isLead])
 
   const handlePwChange = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -23,11 +30,14 @@ export default function ParametresPage() {
       await changePassword(newPassword)
       setPwSuccess('Mot de passe mis à jour')
       setNewPassword(''); setConfirmPassword('')
-    } catch {
-      setPwError('Erreur lors du changement de mot de passe.')
-    } finally {
-      setPwSaving(false)
-    }
+    } catch { setPwError('Erreur lors du changement.') }
+    finally { setPwSaving(false) }
+  }
+
+  const handleSaveHistorique = async () => {
+    await setNbSemainesHistorique(nbSemaines)
+    setHistoriqueSaved(true)
+    setTimeout(() => setHistoriqueSaved(false), 2000)
   }
 
   return (
@@ -36,9 +46,42 @@ export default function ParametresPage() {
         <div>
           <h1 className="text-2xl font-black text-white">Paramètres</h1>
           <p className="text-sm mt-1" style={{ color: 'var(--blocc-muted)' }}>
-            {isLead ? 'Config avancée disponible dans le Dashboard Lead' : 'Ton compte'}
+            {isLead ? 'Config avancée dans le Dashboard Lead' : 'Ton compte'}
           </p>
         </div>
+
+        {/* Historique - leads seulement */}
+        {isLead && (
+          <div className="card p-6">
+            <h2 className="text-sm font-bold uppercase tracking-widest mb-4 flex items-center gap-2" style={{ color: 'var(--blocc-muted)' }}>
+              <Clock size={14} /> Historique des semaines
+            </h2>
+            <p className="text-xs mb-4" style={{ color: 'var(--blocc-muted)' }}>
+              Les ventes plus anciennes que ce nombre de semaines sont supprimées automatiquement. 
+              Les semaines en cours et récentes sont toujours conservées.
+            </p>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3">
+                <input
+                  className="input w-24 text-center text-lg font-bold"
+                  type="number" min="2" max="52"
+                  value={nbSemaines}
+                  onChange={e => setNbSemaines(Number(e.target.value))}
+                />
+                <span className="text-sm text-white">semaines</span>
+              </div>
+              <button className="btn-primary" onClick={handleSaveHistorique}>
+                {historiqueSaved ? 'Sauvegardé ✓' : 'Sauvegarder'}
+              </button>
+            </div>
+            <div className="mt-3 text-xs" style={{ color: 'var(--blocc-muted)' }}>
+              Le nettoyage s'effectue automatiquement quand un lead ouvre le dashboard.
+              Avec 5 semaines et 50 ventes/semaine ≈ 0.1 Mo utilisé.
+            </div>
+          </div>
+        )}
+
+        {/* Mot de passe */}
         <div className="card p-6">
           <h2 className="text-sm font-bold uppercase tracking-widest mb-5 flex items-center gap-2" style={{ color: 'var(--blocc-muted)' }}>
             <Key size={14} /> Mon mot de passe
@@ -56,7 +99,9 @@ export default function ParametresPage() {
             </div>
             {pwError && <div className="text-sm text-red-400 px-3 py-2 rounded" style={{ background: 'rgba(239,68,68,0.1)' }}>{pwError}</div>}
             {pwSuccess && <div className="text-sm text-green-400 px-3 py-2 rounded" style={{ background: 'rgba(34,197,94,0.1)' }}>{pwSuccess}</div>}
-            <button type="submit" className="btn-primary" disabled={pwSaving}>{pwSaving ? 'Mise à jour...' : 'Changer le mot de passe'}</button>
+            <button type="submit" className="btn-primary" disabled={pwSaving}>
+              {pwSaving ? 'Mise à jour...' : 'Changer le mot de passe'}
+            </button>
           </form>
         </div>
       </div>
