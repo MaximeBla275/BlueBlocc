@@ -156,6 +156,29 @@ h1, h2, h3, h4, h5, h6 {
 }
 .select option {
   background-color: #0a1628;
+  color: #e0eaff;
+}
+
+/* Force dark on all native selects using .input class */
+select.input {
+  background-color: #0d1f3c;
+  color: #e0eaff;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b82a8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  padding-right: 2rem;
+}
+
+select.input option {
+  background-color: #0a1628;
+  color: #e0eaff;
+}
+
+select.input:focus {
+  border-color: var(--blocc-blue);
 }
 
 .label {
