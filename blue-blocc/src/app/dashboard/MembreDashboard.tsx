@@ -46,7 +46,20 @@ export default function MembreDashboard() {
       const benefSale = mv.reduce((s, v) => s + v.benefSale, 0)
       const pct = Math.min(100, (kg / params.quotaIndividuel) * 100)
       return { ...m, kg, cashSale, benefSale, pct }
-    }).sort((a, b) => b.kg - a.kg)
+    }).sort((a, b) => {
+      // Rôle système d'abord
+      const sysOrder = ['lead', 'co-lead']
+      const ai = sysOrder.indexOf(a.role); const bi = sysOrder.indexOf(b.role)
+      if (ai !== bi) return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi)
+      // Ordre du rôle secondaire
+      const aCr = a.customRoleId ? customRoles.find((r: any) => r.id === a.customRoleId) : null
+      const bCr = b.customRoleId ? customRoles.find((r: any) => r.id === b.customRoleId) : null
+      const aOrdre = aCr ? (aCr as any).ordre : 9999
+      const bOrdre = bCr ? (bCr as any).ordre : 9999
+      if (aOrdre !== bOrdre) return aOrdre - bOrdre
+      // Enfin par kg vendus
+      return b.kg - a.kg
+    })
   }, [membres, ventes, params])
 
   const mesStats = statsMembres.find(m => m.uid === profile?.uid)
