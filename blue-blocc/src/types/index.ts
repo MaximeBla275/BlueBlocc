@@ -17,6 +17,7 @@ export interface CustomRole {
   nom: string
   permissions: Permission[]
   couleur: string
+  ordre: number
   createdAt: string
 }
 
