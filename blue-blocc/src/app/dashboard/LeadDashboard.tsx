@@ -7,7 +7,7 @@ import { useAuth } from '@/lib/auth-context'
 import {
   getVentes, getMembers, getEntrepots, getParametres, getTreso, getDemandes, getSemaines,
   setParametres, createMember, updateMemberRole, updateMemberPassword, deleteMember,
-  getItems, createItem, updateItem, deleteItem, updateItemPrixVente, getRendements,
+  getItems, createItem, updateItem, deleteItem, updateItemPrixVente, getRendements, nettoyerHistorique,
   createEntrepot, updateEntrepot, rechargerEntrepot, deleteEntrepot, resetTreso
 } from '@/lib/db'
 import { Vente, Member, Entrepot, Parametres, Treso, Item, DemandeStock } from '@/types'
@@ -38,6 +38,8 @@ export default function LeadDashboard() {
 
   const load = async () => {
     setLoading(true)
+    // Nettoyage auto de l'historique (lead seulement)
+    nettoyerHistorique().catch(() => {})
     const [v, m, e, p, t, d, i, s] = await Promise.all([
       getVentes({ semaine }), getMembers(), getEntrepots(), getParametres(),
       getTreso(), getDemandes({ statut: 'en_attente' }), getItems(), getSemaines()
