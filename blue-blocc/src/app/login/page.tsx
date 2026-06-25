@@ -62,7 +62,7 @@ export default function LoginPage() {
           <h1 className="text-3xl font-black tracking-tight"
             style={{ background: 'linear-gradient(135deg, #fff, #60a5fa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}
           >
-            BLUE BLOCC
+            ROLLIN BLUES
           </h1>
           <p className="text-sm mt-1" style={{ color: 'var(--blocc-muted)' }}>Système de gestion interne</p>
         </div>
