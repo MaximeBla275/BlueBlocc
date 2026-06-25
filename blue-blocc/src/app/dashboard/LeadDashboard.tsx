@@ -241,9 +241,9 @@ function TabGlobal({ tresoSolde, tresoObjectif, tresoPct, totalVendu, totalCashS
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { label: 'Kg vendus', value: formatKg(totalVendu), color: '#3b82f6' },
-          { label: 'Cash sale', value: formatMoney(totalCashSale), color: '#60a5fa' },
-          { label: 'Bénéf sale', value: formatMoney(totalBenefSale), color: '#4ade80' },
-          { label: 'Coûts achat', value: formatMoney(totalCouts), color: '#00bfff' },
+          { label: 'Ventes', value: formatMoney(totalCashSale), color: '#60a5fa' },
+          { label: 'Profit', value: formatMoney(totalBenefSale), color: '#4ade80' },
+          { label: 'Coût', value: formatMoney(totalCouts), color: '#00bfff' },
           { label: 'Pertes', value: formatMoney(totalPertes), color: '#f87171' },
           { label: 'Stock total', value: capaciteTotale ? `${formatKg(stockTotal)}/${formatKg(capaciteTotale)}` : formatKg(stockTotal), color: '#818cf8' },
           { label: 'Membres', value: `${statsMembres.length}`, color: '#f472b6' },
@@ -296,7 +296,7 @@ function TabGlobal({ tresoSolde, tresoObjectif, tresoPct, totalVendu, totalCashS
                 </div>
                 <div className="grid grid-cols-4 gap-2 mt-3 pl-10 text-xs">
                   <div><div className="uppercase" style={{ color: 'var(--blocc-muted)' }}>Kg</div><div className="font-bold text-white">{formatKg(m.kg)}</div></div>
-                  <div><div className="uppercase" style={{ color: 'var(--blocc-muted)' }}>Cash sale</div><div className="font-bold" style={{ color: '#60a5fa' }}>{formatMoney(m.cashSale)}</div></div>
+                  <div><div className="uppercase" style={{ color: 'var(--blocc-muted)' }}>Ventes</div><div className="font-bold" style={{ color: '#60a5fa' }}>{formatMoney(m.cashSale)}</div></div>
                   <div><div className="uppercase" style={{ color: 'var(--blocc-muted)' }}>Bénéf</div><div className="font-bold" style={{ color: '#4ade80' }}>{formatMoney(m.benefSale)}</div></div>
                   <div><div className="uppercase" style={{ color: 'var(--blocc-muted)' }}>Pertes</div><div className="font-bold" style={{ color: '#f87171' }}>{formatMoney(m.pertes)}</div></div>
                 </div>
@@ -668,8 +668,8 @@ function TabMembres({ membres, statsMembres, params, semaine, load }: any) {
                 </div>
                 {stats && params && (
                   <div className="mt-3 grid grid-cols-4 gap-2 text-xs">
-                    <div><div className="uppercase" style={{ color: 'var(--blocc-muted)' }}>Cash sale</div><div className="font-bold" style={{ color: '#60a5fa' }}>{formatMoney(stats.cashSale)}</div></div>
-                    <div><div className="uppercase" style={{ color: 'var(--blocc-muted)' }}>Bénéf sale</div><div className="font-bold" style={{ color: '#4ade80' }}>{formatMoney(stats.benefSale)}</div></div>
+                    <div><div className="uppercase" style={{ color: 'var(--blocc-muted)' }}>Ventes</div><div className="font-bold" style={{ color: '#60a5fa' }}>{formatMoney(stats.cashSale)}</div></div>
+                    <div><div className="uppercase" style={{ color: 'var(--blocc-muted)' }}>Profit</div><div className="font-bold" style={{ color: '#4ade80' }}>{formatMoney(stats.benefSale)}</div></div>
                     <div><div className="uppercase" style={{ color: 'var(--blocc-muted)' }}>Pertes</div><div className="font-bold" style={{ color: '#f87171' }}>{formatMoney(stats.pertes)}</div></div>
                     <div><div className="uppercase" style={{ color: 'var(--blocc-muted)' }}>Salaire est.</div><div className="font-bold text-white">{formatMoney(stats.salaire)}</div></div>
                   </div>
