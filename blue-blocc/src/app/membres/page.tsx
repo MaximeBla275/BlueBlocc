@@ -89,13 +89,13 @@ export default function MembresPage() {
     setNewRoleNom(''); setNewRolePerms(['faire_ventes', 'faire_demandes', 'voir_membres', 'voir_rendements']); setShowCreateRole(false); load()
   }
 
+  useRealtime(load)
+
   if (loading) return (
     <AppLayout>
       <div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" /></div>
     </AppLayout>
   )
-
-  useRealtime(load)
 
   return (
     <AppLayout>
