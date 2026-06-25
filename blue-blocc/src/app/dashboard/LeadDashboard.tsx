@@ -147,7 +147,7 @@ export default function LeadDashboard() {
 }
 
 // ─── TAB GLOBAL ──────────────────────────────────────────────────────────────
-function TabGlobal({ tresoSolde, tresoObjectif, tresoPct, totalVendu, totalCashSale, totalBenefSale, totalCouts, totalPertes, stockTotal, capaciteTotale, progressGlobal, params, statsMembres, semaine, treso }: any) {
+function TabGlobal({ tresoSolde, tresoObjectif, tresoPct, totalVendu, totalCashSale, totalBenefSale, totalCouts, totalPertes, stockTotal, capaciteTotale, progressGlobal, params, statsMembres, semaine, treso, customRoles }: any) {
   const [editTreso, setEditTreso] = useState(false)
   const [capitalInput, setCapitalInput] = useState('')
   const [objectifInput, setObjectifInput] = useState('')
@@ -243,7 +243,6 @@ function TabGlobal({ tresoSolde, tresoObjectif, tresoPct, totalVendu, totalCashS
           { label: 'Coûts achat', value: formatMoney(totalCouts), color: '#00bfff' },
           { label: 'Pertes', value: formatMoney(totalPertes), color: '#f87171' },
           { label: 'Stock total', value: capaciteTotale ? `${formatKg(stockTotal)}/${formatKg(capaciteTotale)}` : formatKg(stockTotal), color: '#818cf8' },
-          { label: 'Objectif groupe', value: `${Math.round(progressGlobal)}%`, color: progressGlobal >= 100 ? '#4ade80' : '#1e6bff' },
           { label: 'Membres', value: `${statsMembres.length}`, color: '#f472b6' },
         ].map(s => (
           <div key={s.label} className="card p-4">
@@ -251,6 +250,43 @@ function TabGlobal({ tresoSolde, tresoObjectif, tresoPct, totalVendu, totalCashS
             <div className="text-lg font-black" style={{ color: s.color }}>{s.value}</div>
           </div>
         ))}
+      </div>
+
+      {/* Objectifs groupe — double barre */}
+      <div className="card p-6">
+        <div className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: 'var(--blocc-muted)' }}>Objectifs groupe — semaine {semaine}</div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <div className="flex items-end justify-between mb-2">
+              <div>
+                <div className="text-xs uppercase tracking-wide mb-1" style={{ color: 'var(--blocc-muted)' }}>Volume vendu</div>
+                <div className="text-2xl font-black" style={{ color: '#60a5fa' }}>{formatKg(totalVendu)}</div>
+              </div>
+              <div className="text-right">
+                <div className="text-xl font-black" style={{ color: progressGlobal >= 100 ? '#4ade80' : '#a78bfa' }}>{Math.round(progressGlobal)}%</div>
+                <div className="text-xs" style={{ color: 'var(--blocc-muted)' }}>/ {params ? formatKg(params.objectifGlobal) : '—'}</div>
+              </div>
+            </div>
+            <div className="progress-bar">
+              <div className="progress-fill" style={{ width: `${progressGlobal}%`, background: progressGlobal >= 100 ? 'linear-gradient(90deg,#22c55e,#4ade80)' : 'linear-gradient(90deg,#7c3aed,#a78bfa)' }} />
+            </div>
+          </div>
+          <div>
+            <div className="flex items-end justify-between mb-2">
+              <div>
+                <div className="text-xs uppercase tracking-wide mb-1" style={{ color: 'var(--blocc-muted)' }}>Trésorerie</div>
+                <div className="text-2xl font-black" style={{ color: '#4ade80' }}>{formatMoney(tresoSolde)}</div>
+              </div>
+              <div className="text-right">
+                <div className="text-xl font-black" style={{ color: tresoPct >= 100 ? '#4ade80' : '#60a5fa' }}>{Math.round(tresoPct)}%</div>
+                <div className="text-xs" style={{ color: 'var(--blocc-muted)' }}>/ {formatMoney(tresoObjectif)}</div>
+              </div>
+            </div>
+            <div className="progress-bar">
+              <div className="progress-fill" style={{ width: `${tresoPct}%`, background: tresoPct >= 100 ? 'linear-gradient(90deg,#22c55e,#4ade80)' : 'linear-gradient(90deg,#1e6bff,#00bfff)' }} />
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Classement */}
