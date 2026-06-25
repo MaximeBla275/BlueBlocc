@@ -1,0 +1,471 @@
+import { supabase } from './supabase'
+import {
+  Member, Vente, DemandeStock, Entrepot, Item,
+  Parametres, StockItem, Treso, TresoMouvement,
+  CustomRole, Permission, RendementItem
+} from '@/types'
+import { getSemaine } from './utils'
+
+const genId = (p: string) => `${p}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+const now = () => new Date().toISOString()
+
+export const ALL_PERMISSIONS: { id: Permission; label: string; desc: string }[] = [
+  { id: 'faire_ventes', label: 'Faire des ventes', desc: 'Enregistrer des ventes' },
+  { id: 'faire_demandes', label: 'Faire des demandes', desc: 'Demander du stock' },
+  { id: 'voir_stock', label: 'Voir le stock', desc: 'Accès page stock en lecture' },
+  { id: 'gerer_stock', label: 'Gérer le stock', desc: 'Créer/recharger/modifier entrepôts' },
+  { id: 'voir_treso', label: 'Voir la tréso', desc: 'Voir la trésorerie complète' },
+  { id: 'voir_membres', label: 'Voir les membres', desc: 'Accès à la liste des membres' },
+  { id: 'gerer_membres', label: 'Gérer les membres', desc: 'Créer/modifier/supprimer membres' },
+  { id: 'gerer_demandes', label: 'Valider demandes', desc: 'Valider ou refuser les demandes de stock' },
+  { id: 'voir_rendements', label: 'Voir les rendements', desc: 'Stats de rendement par produit' },
+  { id: 'voir_dashboard_lead', label: 'Dashboard lead', desc: 'Accès au dashboard complet lead' },
+  { id: 'gerer_payes', label: 'Gérer les payes', desc: "Accès onglet payes et config salaires" },
+  { id: 'gerer_roles', label: 'Gérer les rôles', desc: 'Créer/modifier les rôles personnalisés' },
+]
+
+const ALL_PERMS: Permission[] = ALL_PERMISSIONS.map(p => p.id)
+
+export const SYSTEM_ROLE_PERMISSIONS: Record<string, Permission[]> = {
+  'lead': ALL_PERMS,
+  'co-lead': ALL_PERMS,
+  'membre': ['faire_ventes', 'faire_demandes', 'voir_membres', 'voir_rendements'],
+}
+
+export function getMemberPermissions(member: Member, customRoles: CustomRole[]): Permission[] {
+  if (member.role === 'lead' || member.role === 'co-lead') return ALL_PERMS
+  if (member.customRoleId) {
+    const cr = customRoles.find(r => r.id === member.customRoleId)
+    if (cr) return cr.permissions
+  }
+  return SYSTEM_ROLE_PERMISSIONS['membre']
+}
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+function mapMembre(row: Record<string, unknown>): Member & { password: string } {
+  return {
+    uid: String(row.uid),
+    pseudo: String(row.pseudo),
+    role: String(row.role),
+    customRoleId: row.custom_role_id ? String(row.custom_role_id) : undefined,
+    createdAt: String(row.created_at),
+    password: String(row.password),
+  }
+}
+
+function mapItem(row: Record<string, unknown>): Item {
+  return {
+    id: String(row.id),
+    nom: String(row.nom),
+    prixAchat: Number(row.prix_achat),
+    prixVenteMoyen: Number(row.prix_vente_moyen),
+    unite: String(row.unite),
+    createdAt: String(row.created_at),
+  }
+}
+
+function mapEntrepot(row: Record<string, unknown>, stocks: StockItem[]): Entrepot {
+  return {
+    id: String(row.id),
+    nom: String(row.nom),
+    capaciteMax: Number(row.capacite_max),
+    stocks,
+    createdAt: String(row.created_at),
+  }
+}
+
+function mapVente(row: Record<string, unknown>): Vente {
+  return {
+    id: String(row.id),
+    membreId: String(row.membre_id),
+    membrePseudo: String(row.membre_pseudo),
+    itemId: String(row.item_id),
+    itemNom: String(row.item_nom),
+    quantite: Number(row.quantite),
+    cashSale: Number(row.cash_sale),
+    prixAchatUnitaire: Number(row.prix_achat_unitaire),
+    coutAchat: Number(row.cout_achat),
+    benefSale: Number(row.benef_sale),
+    type: row.type as 'normale' | 'nulle',
+    semaine: String(row.semaine),
+    createdAt: String(row.created_at),
+  }
+}
+
+function mapDemande(row: Record<string, unknown>): DemandeStock {
+  return {
+    id: String(row.id),
+    membreId: String(row.membre_id),
+    membrePseudo: String(row.membre_pseudo),
+    itemId: String(row.item_id),
+    itemNom: String(row.item_nom),
+    quantite: Number(row.quantite),
+    prixAchat: Number(row.prix_achat),
+    montantTotal: Number(row.montant_total),
+    statut: row.statut as 'en_attente' | 'validee' | 'refusee',
+    entrepotId: String(row.entrepot_id),
+    createdAt: String(row.created_at),
+    traiteeBy: row.traitee_by ? String(row.traitee_by) : undefined,
+    traiteeAt: row.traitee_at ? String(row.traitee_at) : undefined,
+  }
+}
+
+// ─── AUTH ─────────────────────────────────────────────────────────────────────
+export async function loginMembre(pseudo: string, password: string): Promise<Member & { password: string }> {
+  const { data, error } = await supabase
+    .from('membres')
+    .select('*')
+    .ilike('pseudo', pseudo.trim())
+    .single()
+  if (error || !data) throw new Error('Pseudo ou mot de passe incorrect')
+  const membre = mapMembre(data as Record<string, unknown>)
+  if (membre.password !== password) throw new Error('Pseudo ou mot de passe incorrect')
+  return membre
+}
+
+export async function updatePassword(uid: string, password: string): Promise<void> {
+  await supabase.from('membres').update({ password, must_change_password: false }).eq('uid', uid)
+}
+
+// ─── CUSTOM ROLES ─────────────────────────────────────────────────────────────
+export async function getCustomRoles(): Promise<CustomRole[]> {
+  const { data } = await supabase.from('custom_roles').select('*').order('created_at')
+  return (data || []).map((r: Record<string, unknown>) => ({
+    id: String(r.id),
+    nom: String(r.nom),
+    permissions: (r.permissions as string[]) as Permission[],
+    couleur: String(r.couleur),
+    createdAt: String(r.created_at),
+  }))
+}
+
+export async function createCustomRole(nom: string, permissions: Permission[], couleur: string): Promise<void> {
+  await supabase.from('custom_roles').insert({ id: genId('role'), nom: nom.trim(), permissions, couleur })
+}
+
+export async function updateCustomRole(roleId: string, data: Partial<Pick<CustomRole, 'nom' | 'permissions' | 'couleur'>>): Promise<void> {
+  await supabase.from('custom_roles').update({
+    ...(data.nom && { nom: data.nom }),
+    ...(data.permissions && { permissions: data.permissions }),
+    ...(data.couleur && { couleur: data.couleur }),
+  }).eq('id', roleId)
+}
+
+export async function deleteCustomRole(roleId: string): Promise<void> {
+  await supabase.from('custom_roles').delete().eq('id', roleId)
+}
+
+// ─── PARAMS ───────────────────────────────────────────────────────────────────
+export async function getParametres(): Promise<Parametres> {
+  const [{ data: p }, { data: t }] = await Promise.all([
+    supabase.from('parametres').select('*').eq('id', 1).single(),
+    supabase.from('treso').select('*').eq('id', 1).single(),
+  ])
+  return {
+    nomGang: p ? String(p.nom_gang) : 'Blue Blocc',
+    tresoCapitalInitial: t ? Number(t.capital_initial) : 0,
+    tresoObjectif: t ? Number(t.objectif) : 1500000,
+    quotaIndividuel: p ? Number(p.quota_individuel) : 600,
+    objectifGlobal: p ? Number(p.objectif_global) : 3000,
+    salaireBase: p ? Number(p.salaire_base) : 30000,
+    bonusMontant: p ? Number(p.bonus_montant) : 2000,
+    bonusPalier: p ? Number(p.bonus_palier) : 200,
+  }
+}
+
+export async function setParametres(params: Partial<Parametres>): Promise<void> {
+  const updates: Record<string, unknown> = {}
+  if (params.nomGang !== undefined) updates.nom_gang = params.nomGang
+  if (params.quotaIndividuel !== undefined) updates.quota_individuel = params.quotaIndividuel
+  if (params.objectifGlobal !== undefined) updates.objectif_global = params.objectifGlobal
+  if (params.salaireBase !== undefined) updates.salaire_base = params.salaireBase
+  if (params.bonusMontant !== undefined) updates.bonus_montant = params.bonusMontant
+  if (params.bonusPalier !== undefined) updates.bonus_palier = params.bonusPalier
+  if (Object.keys(updates).length > 0) {
+    await supabase.from('parametres').upsert({ id: 1, ...updates, updated_at: now() })
+  }
+
+  if (params.tresoCapitalInitial !== undefined || params.tresoObjectif !== undefined) {
+    const tresoUpdates: Record<string, unknown> = {}
+    if (params.tresoCapitalInitial !== undefined) {
+      const { data: t } = await supabase.from('treso').select('capital_initial').eq('id', 1).single()
+      const oldCapital = t ? Number(t.capital_initial) : 0
+      const diff = params.tresoCapitalInitial - oldCapital
+      tresoUpdates.capital_initial = params.tresoCapitalInitial
+      // Adjust solde by the difference
+      const { data: treso } = await supabase.from('treso').select('solde').eq('id', 1).single()
+      tresoUpdates.solde = (treso ? Number(treso.solde) : 0) + diff
+    }
+    if (params.tresoObjectif !== undefined) tresoUpdates.objectif = params.tresoObjectif
+    tresoUpdates.updated_at = now()
+    await supabase.from('treso').upsert({ id: 1, ...tresoUpdates })
+  }
+}
+
+// ─── TRESO ────────────────────────────────────────────────────────────────────
+export async function getTreso(): Promise<Treso> {
+  const [{ data: t }, { data: m }] = await Promise.all([
+    supabase.from('treso').select('*').eq('id', 1).single(),
+    supabase.from('treso_mouvements').select('*').order('created_at', { ascending: false }).limit(50),
+  ])
+  return {
+    solde: t ? Number(t.solde) : 0,
+    mouvements: (m || []).map((mv: Record<string, unknown>) => ({
+      id: String(mv.id),
+      type: mv.type as 'entree' | 'sortie' | 'init',
+      montant: Number(mv.montant),
+      label: String(mv.label),
+      ref: mv.ref ? String(mv.ref) : undefined,
+      createdAt: String(mv.created_at),
+    })),
+  }
+}
+
+async function addTresoMouvement(type: 'entree' | 'sortie', montant: number, label: string, ref?: string): Promise<void> {
+  const { data: t } = await supabase.from('treso').select('solde').eq('id', 1).single()
+  const currentSolde = t ? Number(t.solde) : 0
+  const newSolde = type === 'entree' ? currentSolde + montant : currentSolde - montant
+  await Promise.all([
+    supabase.from('treso').update({ solde: newSolde, updated_at: now() }).eq('id', 1),
+    supabase.from('treso_mouvements').insert({ id: genId('mv'), type, montant, label, ref, created_at: now() }),
+  ])
+}
+
+export async function resetTreso(): Promise<void> {
+  const { data: t } = await supabase.from('treso').select('capital_initial').eq('id', 1).single()
+  const capital = t ? Number(t.capital_initial) : 0
+  await Promise.all([
+    supabase.from('treso').update({ solde: capital, updated_at: now() }).eq('id', 1),
+    supabase.from('treso_mouvements').delete().neq('id', ''),
+  ])
+  if (capital > 0) {
+    await supabase.from('treso_mouvements').insert({ id: genId('mv'), type: 'init', montant: capital, label: 'Capital initial (reset)', created_at: now() })
+  }
+}
+
+// ─── ITEMS ────────────────────────────────────────────────────────────────────
+export async function getItems(): Promise<Item[]> {
+  const { data } = await supabase.from('items').select('*').order('created_at')
+  return (data || []).map(r => mapItem(r as Record<string, unknown>))
+}
+
+export async function createItem(nom: string, prixAchat: number, unite: string): Promise<void> {
+  await supabase.from('items').insert({ id: genId('item'), nom: nom.trim(), prix_achat: prixAchat, prix_vente_moyen: 0, unite: unite || 'kg' })
+}
+
+export async function updateItem(itemId: string, data: Partial<Pick<Item, 'nom' | 'prixAchat' | 'prixVenteMoyen' | 'unite'>>): Promise<void> {
+  const updates: Record<string, unknown> = {}
+  if (data.nom !== undefined) updates.nom = data.nom
+  if (data.prixAchat !== undefined) updates.prix_achat = data.prixAchat
+  if (data.prixVenteMoyen !== undefined) updates.prix_vente_moyen = data.prixVenteMoyen
+  if (data.unite !== undefined) updates.unite = data.unite
+  await supabase.from('items').update(updates).eq('id', itemId)
+}
+
+export async function deleteItem(itemId: string): Promise<void> {
+  await supabase.from('items').delete().eq('id', itemId)
+}
+
+export async function updateItemPrixVente(itemId: string, prixVenteMoyen: number): Promise<void> {
+  await supabase.from('items').update({ prix_vente_moyen: prixVenteMoyen }).eq('id', itemId)
+}
+
+// ─── MEMBERS ──────────────────────────────────────────────────────────────────
+export async function getMembers(): Promise<Member[]> {
+  const { data } = await supabase.from('membres').select('*').order('created_at')
+  return (data || []).map(r => {
+    const m = mapMembre(r as Record<string, unknown>)
+    const { password, ...safe } = m
+    void password
+    return safe
+  })
+}
+
+export async function createMember(pseudo: string, role: string, password: string, creatorUid: string, customRoleId?: string): Promise<void> {
+  const clean = pseudo.trim()
+  if (!clean) throw new Error('Pseudo requis')
+  const { data: existing } = await supabase.from('membres').select('uid').ilike('pseudo', clean).single()
+  if (existing) throw new Error('Ce pseudo existe déjà')
+  await supabase.from('membres').insert({
+    uid: genId('member'), pseudo: clean, role,
+    password: password.trim() || 'membre',
+    custom_role_id: customRoleId || null,
+    must_change_password: true,
+    created_by: creatorUid,
+  })
+}
+
+export async function updateMemberRole(memberId: string, role: string, customRoleId?: string): Promise<void> {
+  await supabase.from('membres').update({ role, custom_role_id: customRoleId || null }).eq('uid', memberId)
+}
+
+export async function updateMemberPassword(memberId: string, password: string): Promise<void> {
+  await supabase.from('membres').update({ password }).eq('uid', memberId)
+}
+
+export async function deleteMember(memberId: string): Promise<void> {
+  await supabase.from('membres').delete().eq('uid', memberId)
+}
+
+// ─── ENTREPOTS ────────────────────────────────────────────────────────────────
+export async function getEntrepots(): Promise<Entrepot[]> {
+  const [{ data: entrepots }, { data: stocks }] = await Promise.all([
+    supabase.from('entrepots').select('*').order('created_at'),
+    supabase.from('stocks').select('*'),
+  ])
+  return (entrepots || []).map(e => {
+    const eStocks = (stocks || [])
+      .filter((s: Record<string, unknown>) => s.entrepot_id === e.id)
+      .map((s: Record<string, unknown>): StockItem => ({
+        itemId: String(s.item_id),
+        itemNom: String(s.item_nom),
+        quantite: Number(s.quantite),
+        prixAchatUnitaire: Number(s.prix_achat_unitaire),
+      }))
+    return mapEntrepot(e as Record<string, unknown>, eStocks)
+  })
+}
+
+export async function createEntrepot(nom: string, capaciteMax = 1500): Promise<void> {
+  await supabase.from('entrepots').insert({ id: genId('entrepot'), nom: nom.trim(), capacite_max: capaciteMax })
+}
+
+export async function updateEntrepot(entrepotId: string, data: Partial<Pick<Entrepot, 'nom' | 'capaciteMax'>>): Promise<void> {
+  const updates: Record<string, unknown> = {}
+  if (data.nom !== undefined) updates.nom = data.nom
+  if (data.capaciteMax !== undefined) updates.capacite_max = data.capaciteMax
+  await supabase.from('entrepots').update(updates).eq('id', entrepotId)
+}
+
+export async function deleteEntrepot(entrepotId: string): Promise<void> {
+  await supabase.from('entrepots').delete().eq('id', entrepotId)
+}
+
+async function upsertStock(entrepotId: string, itemId: string, itemNom: string, quantite: number, prixAchatUnitaire: number): Promise<void> {
+  const { data: existing } = await supabase.from('stocks').select('*').eq('entrepot_id', entrepotId).eq('item_id', itemId).single()
+  if (existing) {
+    const totalQty = Number(existing.quantite) + quantite
+    const newPrix = totalQty > 0 ? (Number(existing.quantite) * Number(existing.prix_achat_unitaire) + quantite * prixAchatUnitaire) / totalQty : prixAchatUnitaire
+    await supabase.from('stocks').update({ quantite: totalQty, prix_achat_unitaire: newPrix }).eq('entrepot_id', entrepotId).eq('item_id', itemId)
+  } else {
+    await supabase.from('stocks').insert({ id: genId('stock'), entrepot_id: entrepotId, item_id: itemId, item_nom: itemNom, quantite, prix_achat_unitaire: prixAchatUnitaire })
+  }
+}
+
+export async function rechargerEntrepot(entrepotId: string, itemId: string, itemNom: string, quantite: number, prixAchat: number): Promise<void> {
+  const { data: e } = await supabase.from('entrepots').select('nom').eq('id', entrepotId).single()
+  await upsertStock(entrepotId, itemId, itemNom, quantite, prixAchat)
+  await addTresoMouvement('sortie', quantite * prixAchat, `Achat ${itemNom} — ${e?.nom || entrepotId}`, genId('recharge'))
+}
+
+export async function getStockDisponible(itemId: string): Promise<{ quantite: number; prixAchatUnitaire: number }> {
+  const { data } = await supabase.from('stocks').select('*').eq('item_id', itemId)
+  const stocks = data || []
+  const totalQty = stocks.reduce((s: number, st: Record<string, unknown>) => s + Number(st.quantite), 0)
+  const totalValue = stocks.reduce((s: number, st: Record<string, unknown>) => s + Number(st.quantite) * Number(st.prix_achat_unitaire), 0)
+  return { quantite: totalQty, prixAchatUnitaire: totalQty > 0 ? totalValue / totalQty : 0 }
+}
+
+export async function transfererStock(fromEntrepotId: string, toEntrepotId: string, itemId: string, itemNom: string, quantite: number): Promise<void> {
+  const { data: fromStock } = await supabase.from('stocks').select('*').eq('entrepot_id', fromEntrepotId).eq('item_id', itemId).single()
+  if (!fromStock) return
+  const prixUnitaire = Number(fromStock.prix_achat_unitaire)
+  const newQty = Number(fromStock.quantite) - quantite
+  if (newQty <= 0) {
+    await supabase.from('stocks').delete().eq('entrepot_id', fromEntrepotId).eq('item_id', itemId)
+  } else {
+    await supabase.from('stocks').update({ quantite: newQty }).eq('entrepot_id', fromEntrepotId).eq('item_id', itemId)
+  }
+  await upsertStock(toEntrepotId, itemId, itemNom, quantite, prixUnitaire)
+}
+
+// ─── VENTES ───────────────────────────────────────────────────────────────────
+export async function getVentes(options?: { membreId?: string; semaine?: string }): Promise<Vente[]> {
+  let q = supabase.from('ventes').select('*').order('created_at', { ascending: false })
+  if (options?.membreId) q = q.eq('membre_id', options.membreId)
+  if (options?.semaine) q = q.eq('semaine', options.semaine)
+  const { data } = await q
+  return (data || []).map(r => mapVente(r as Record<string, unknown>))
+}
+
+export async function getSemaines(): Promise<string[]> {
+  const { data } = await supabase.from('ventes').select('semaine')
+  const semaines = Array.from(new Set((data || []).map((v: Record<string, unknown>) => String(v.semaine)))).sort().reverse()
+  return semaines
+}
+
+export async function addVente(vente: Omit<Vente, 'id' | 'semaine' | 'createdAt'>): Promise<void> {
+  const semaine = getSemaine()
+  const id = genId('vente')
+  // Déduire stock
+  const { data: stocks } = await supabase.from('stocks').select('*').eq('item_id', vente.itemId).order('quantite', { ascending: false })
+  if (stocks && stocks.length > 0) {
+    let remaining = vente.quantite
+    for (const s of stocks as Record<string, unknown>[]) {
+      if (remaining <= 0) break
+      const qty = Math.min(Number(s.quantite), remaining)
+      const newQty = Number(s.quantite) - qty
+      if (newQty <= 0) {
+        await supabase.from('stocks').delete().eq('entrepot_id', s.entrepot_id).eq('item_id', vente.itemId)
+      } else {
+        await supabase.from('stocks').update({ quantite: newQty }).eq('entrepot_id', s.entrepot_id).eq('item_id', vente.itemId)
+      }
+      remaining -= qty
+    }
+  }
+  await supabase.from('ventes').insert({
+    id, membre_id: vente.membreId, membre_pseudo: vente.membrePseudo,
+    item_id: vente.itemId, item_nom: vente.itemNom,
+    quantite: vente.quantite, cash_sale: vente.cashSale,
+    prix_achat_unitaire: vente.prixAchatUnitaire, cout_achat: vente.coutAchat,
+    benef_sale: vente.benefSale, type: vente.type, semaine,
+  })
+  if (vente.type === 'normale' && vente.cashSale > 0) {
+    await addTresoMouvement('entree', vente.cashSale, `Vente ${vente.itemNom} — ${vente.membrePseudo}`, id)
+  }
+}
+
+// ─── DEMANDES ─────────────────────────────────────────────────────────────────
+export async function getDemandes(options?: { membreId?: string; statut?: string }): Promise<DemandeStock[]> {
+  let q = supabase.from('demandes').select('*').order('created_at', { ascending: false })
+  if (options?.membreId) q = q.eq('membre_id', options.membreId)
+  if (options?.statut) q = q.eq('statut', options.statut)
+  const { data } = await q
+  return (data || []).map(r => mapDemande(r as Record<string, unknown>))
+}
+
+export async function addDemande(demande: Omit<DemandeStock, 'id' | 'createdAt' | 'statut'>): Promise<void> {
+  await supabase.from('demandes').insert({
+    id: genId('demande'), membre_id: demande.membreId, membre_pseudo: demande.membrePseudo,
+    item_id: demande.itemId, item_nom: demande.itemNom, quantite: demande.quantite,
+    prix_achat: demande.prixAchat, montant_total: demande.montantTotal,
+    entrepot_id: demande.entrepotId, statut: 'en_attente',
+  })
+}
+
+export async function traiterDemande(demandeId: string, statut: 'validee' | 'refusee', traiteeBy: string): Promise<void> {
+  const { data: demande } = await supabase.from('demandes').select('*').eq('id', demandeId).single()
+  if (!demande) return
+  await supabase.from('demandes').update({ statut, traitee_by: traiteeBy, traitee_at: now() }).eq('id', demandeId)
+  if (statut === 'validee') {
+    const d = mapDemande(demande as Record<string, unknown>)
+    await upsertStock(d.entrepotId, d.itemId, d.itemNom, d.quantite, d.prixAchat)
+    await addTresoMouvement('sortie', d.quantite * d.prixAchat, `Achat ${d.itemNom} — demande de ${d.membrePseudo}`, demandeId)
+  }
+}
+
+// ─── RENDEMENTS ───────────────────────────────────────────────────────────────
+export async function getRendements(): Promise<RendementItem[]> {
+  const [items, ventes] = await Promise.all([getItems(), getVentes()])
+  const ventesNormales = ventes.filter(v => v.type === 'normale')
+  return items.map(item => {
+    const vi = ventesNormales.filter(v => v.itemId === item.id)
+    const totalKgVendus = vi.reduce((s, v) => s + v.quantite, 0)
+    const totalCashSale = vi.reduce((s, v) => s + v.cashSale, 0)
+    const prixVenteReel = totalKgVendus > 0 ? totalCashSale / totalKgVendus : 0
+    const prixVenteConfig = item.prixVenteMoyen || 0
+    const rendementConfig = prixVenteConfig > 0 && item.prixAchat > 0 ? ((prixVenteConfig - item.prixAchat) / item.prixAchat) * 100 : 0
+    const rendementReel = prixVenteReel > 0 && item.prixAchat > 0 ? ((prixVenteReel - item.prixAchat) / item.prixAchat) * 100 : 0
+    return { itemId: item.id, itemNom: item.nom, prixAchatMoyen: item.prixAchat, prixVenteConfig, prixVenteReel, rendementConfig, rendementReel, totalKgVendus, totalCashSale, nbVentes: vi.length }
+  })
+}
