@@ -137,7 +137,7 @@ export default function LeadDashboard() {
           <>
             {tab === 'global' && <TabGlobal {...{ tresoSolde, tresoObjectif, tresoPct, totalVendu, totalCashSale, totalBenefSale, totalCouts, totalPertes, stockTotal, capaciteTotale, progressGlobal, params, statsMembres, semaine, treso, customRoles }} />}
             {tab === 'compta' && <TabCompta {...{ entrepots, items, ventes, semaine, params, load }} />}
-            {tab === 'membres' && <TabMembres {...{ membres, statsMembres, params, semaine, load }} />}
+            {tab === 'membres' && <TabMembres {...{ membres, statsMembres, params, semaine, load, customRoles }} />}
             {tab === 'payes' && <TabPayes {...{ statsMembres, params, load }} />}
           </>
         )}
@@ -577,13 +577,14 @@ function TabCompta({ entrepots, items, ventes, semaine, params, load }: any) {
 }
 
 // ─── TAB MEMBRES ─────────────────────────────────────────────────────────────
-function TabMembres({ membres, statsMembres, params, semaine, load }: any) {
+function TabMembres({ membres, statsMembres, params, semaine, load, customRoles }: any) {
   const [showCreate, setShowCreate] = useState(false)
   const [newPseudo, setNewPseudo] = useState('')
   const [newRole, setNewRole] = useState('membre')
   const [newPwd, setNewPwd] = useState('')
   const [editRoleId, setEditRoleId] = useState<string | null>(null)
   const [editRole, setEditRole] = useState('')
+  const [editCustomRoleId, setEditCustomRoleId] = useState<string>('')
   const [editPwdId, setEditPwdId] = useState<string | null>(null)
   const [newPwdValue, setNewPwdValue] = useState('')
   const [error, setError] = useState('')
@@ -634,13 +635,17 @@ function TabMembres({ membres, statsMembres, params, semaine, load }: any) {
                             <option value="co-lead">Co-Lead</option>
                             <option value="lead">Lead</option>
                           </select>
-                          <button className="text-xs btn-primary py-0.5 px-2" onClick={async () => { await updateMemberRole(m.uid, editRole); setEditRoleId(null); load() }}>OK</button>
+                          <select className="input py-0.5 text-xs h-7" value={editCustomRoleId} onChange={e => setEditCustomRoleId(e.target.value)}>
+                            <option value="">— Aucun —</option>
+                            {customRoles.map((r: any) => <option key={r.id} value={r.id}>{r.nom}</option>)}
+                          </select>
+                          <button className="text-xs btn-primary py-0.5 px-2" onClick={async () => { await updateMemberRole(m.uid, editRole, editCustomRoleId || undefined); setEditRoleId(null); load() }}>OK</button>
                           <button className="text-xs btn-ghost py-0.5 px-2" onClick={() => setEditRoleId(null)}>×</button>
                         </div>
                       ) : (
                         <div className="text-xs mt-0.5 flex items-center gap-2" style={{ color: 'var(--blocc-muted)' }}>
                           {m.role}
-                          <button className="opacity-60 hover:opacity-100" onClick={() => { setEditRoleId(m.uid); setEditRole(m.role) }}><Pencil size={11} /></button>
+                          <button className="opacity-60 hover:opacity-100" onClick={() => { setEditRoleId(m.uid); setEditRole(m.role); setEditCustomRoleId(m.customRoleId || '') }}><Pencil size={11} /></button>
                         </div>
                       )}
                     </div>
