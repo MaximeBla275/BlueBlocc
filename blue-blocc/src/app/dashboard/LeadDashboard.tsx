@@ -671,7 +671,7 @@ function TabMembres({ membres, statsMembres, params, semaine, load }: any) {
                     <div><div className="uppercase" style={{ color: 'var(--blocc-muted)' }}>Ventes</div><div className="font-bold" style={{ color: '#60a5fa' }}>{formatMoney(stats.cashSale)}</div></div>
                     <div><div className="uppercase" style={{ color: 'var(--blocc-muted)' }}>Profit</div><div className="font-bold" style={{ color: '#4ade80' }}>{formatMoney(stats.benefSale)}</div></div>
                     <div><div className="uppercase" style={{ color: 'var(--blocc-muted)' }}>Pertes</div><div className="font-bold" style={{ color: '#f87171' }}>{formatMoney(stats.pertes)}</div></div>
-                    <div><div className="uppercase" style={{ color: 'var(--blocc-muted)' }}>Salaire est.</div><div className="font-bold text-white">{formatMoney(stats.salaire)}</div></div>
+                    <div><div className="uppercase" style={{ color: 'var(--blocc-muted)' }}>Salaire</div><div className="font-bold text-white">{formatMoney(stats.salaire)}</div></div>
                   </div>
                 )}
               </div>
