@@ -8,6 +8,7 @@ import { getMembers, getVentes, getParametres, getCustomRoles, updateMemberRole,
 import { Member, Parametres, CustomRole, Permission, Vente } from '@/types'
 import { formatKg, formatMoney, getSemaine, calculerSalaire, getRoleDisplay } from '@/lib/utils'
 import { Pencil, Trash2, Plus, Check, X, Shield } from 'lucide-react'
+import Select from '@/components/Select'
 
 export default function MembresPage() {
   const { profile, isLead, hasPermission } = useAuth()
@@ -212,18 +213,18 @@ export default function MembresPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
                   <label className="label">Rôle système</label>
-                  <select className="input" value={newRole} onChange={e => setNewRole(e.target.value)}>
-                    <option value="membre">Membre</option>
-                    <option value="co-lead">Co-Lead</option>
-                    <option value="lead">Lead</option>
-                  </select>
+                  <Select value={newRole} onChange={setNewRole} options={[
+                    { value: 'membre', label: 'Membre' },
+                    { value: 'co-lead', label: 'Co-Lead' },
+                    { value: 'lead', label: 'Lead' },
+                  ]} />
                 </div>
                 <div>
                   <label className="label">Rôle personnalisé (optionnel)</label>
-                  <select className="input" value={newCustomRoleId} onChange={e => setNewCustomRoleId(e.target.value)}>
-                    <option value="">— Aucun —</option>
-                    {customRoles.map(r => <option key={r.id} value={r.id}>{r.nom}</option>)}
-                  </select>
+                  <Select value={newCustomRoleId} onChange={setNewCustomRoleId} options={[
+                    { value: '', label: '— Aucun —' },
+                    ...customRoles.map(r => ({ value: r.id, label: r.nom }))
+                  ]} />
                 </div>
               </div>
               <div className="flex gap-2">
@@ -267,7 +268,7 @@ export default function MembresPage() {
                       </div>
                       <div className="progress-bar"><div className="progress-fill" style={{ width: `${stats.pct}%`, background: stats.pct >= 100 ? 'linear-gradient(90deg,#22c55e,#4ade80)' : undefined }} /></div>
                       <div className="flex gap-3 mt-1 text-xs" style={{ color: 'var(--blocc-muted)' }}>
-                        <span>Cash: <strong style={{ color: '#60a5fa' }}>{formatMoney(stats.cashSale)}</strong></span>
+                        <span>Cash sale: <strong style={{ color: '#60a5fa' }}>{formatMoney(stats.cashSale)}</strong></span>
                         <span>Salaire: <strong className="text-white">{formatMoney(stats.salaire)}</strong></span>
                       </div>
                     </div>
@@ -277,15 +278,15 @@ export default function MembresPage() {
                     <div className="flex items-center gap-2 flex-wrap">
                       {editMemberId === m.uid ? (
                         <div className="flex items-center gap-2 flex-wrap">
-                          <select className="input text-xs py-1 h-8" value={editRole} onChange={e => setEditRole(e.target.value)}>
-                            <option value="membre">Membre</option>
-                            <option value="co-lead">Co-Lead</option>
-                            <option value="lead">Lead</option>
-                          </select>
-                          <select className="input text-xs py-1 h-8" value={editCustomRoleId} onChange={e => setEditCustomRoleId(e.target.value)}>
-                            <option value="">— Aucun —</option>
-                            {customRoles.map(r => <option key={r.id} value={r.id}>{r.nom}</option>)}
-                          </select>
+                          <Select value={editRole} onChange={setEditRole} options={[
+                            { value: 'membre', label: 'Membre' },
+                            { value: 'co-lead', label: 'Co-Lead' },
+                            { value: 'lead', label: 'Lead' },
+                          ]} className="w-32" />
+                          <Select value={editCustomRoleId} onChange={setEditCustomRoleId} options={[
+                            { value: '', label: '— Aucun —' },
+                            ...customRoles.map(r => ({ value: r.id, label: r.nom }))
+                          ]} className="w-40" />
                           <button className="btn-primary text-xs py-1 px-2" onClick={async () => { await updateMemberRole(m.uid, editRole, editCustomRoleId || undefined); setEditMemberId(null); load() }}><Check size={13} /></button>
                           <button className="btn-ghost text-xs py-1 px-2" onClick={() => setEditMemberId(null)}><X size={13} /></button>
                         </div>
