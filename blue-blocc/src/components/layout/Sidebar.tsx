@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { LayoutDashboard, ShoppingBag, Package, ClipboardList, Users, Settings, LogOut, X, Menu } from 'lucide-react'
 import { useAuth } from '@/lib/auth-context'
+import { getRoleDisplay } from '@/lib/utils'
 import { useRouter } from 'next/navigation'
 
 export default function Sidebar() {
@@ -12,8 +13,6 @@ export default function Sidebar() {
   const { profile, customRoles, isLead, hasPermission, logout } = useAuth()
   const router = useRouter()
   const [mobileOpen, setMobileOpen] = useState(false)
-
-  const customRole = customRoles.find(r => r.id === profile?.customRoleId)
 
   const navItems = [
     { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, show: true },
@@ -26,13 +25,7 @@ export default function Sidebar() {
 
   const handleLogout = async () => { await logout(); router.push('/login') }
 
-  const roleDisplay = () => {
-    if (isLead && profile?.role === 'lead') return { label: 'Lead', color: '#fbbf24' }
-    if (isLead && profile?.role === 'co-lead') return { label: 'Co-Lead', color: '#60a5fa' }
-    if (customRole) return { label: customRole.nom, color: customRole.couleur }
-    return { label: 'Membre', color: '#6b82a8' }
-  }
-  const rd = roleDisplay()
+  const rd = getRoleDisplay(profile?.role || 'membre', profile?.customRoleId, customRoles)
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
@@ -69,7 +62,7 @@ export default function Sidebar() {
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-sm font-semibold text-white truncate">{profile?.pseudo ?? '—'}</div>
-            <div className="text-xs font-semibold" style={{ color: rd.color }}>{rd.label}</div>
+            <div className="text-xs font-semibold" style={{ color: rd.couleur }}>{rd.label}</div>
           </div>
         </div>
         <button onClick={handleLogout}
