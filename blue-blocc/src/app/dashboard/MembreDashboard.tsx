@@ -11,7 +11,7 @@ import { formatMoney, formatKg, getSemaine, calculerSalaire, getRoleDisplay } fr
 import { ChevronLeft, ChevronRight, CheckCircle, Package } from 'lucide-react'
 
 export default function MembreDashboard() {
-  const { profile, hasPermission } = useAuth()
+  const { profile, hasPermission, customRoles } = useAuth()
   const [ventes, setVentes] = useState<Vente[]>([])
   const [membres, setMembres] = useState<Member[]>([])
   const [entrepots, setEntrepots] = useState<Entrepot[]>([])
@@ -54,6 +54,8 @@ export default function MembreDashboard() {
   const tresoObjectif = params?.tresoObjectif || 1500000
   const tresoSolde = treso?.solde || 0
   const tresoPct = Math.min(100, (tresoSolde / tresoObjectif) * 100)
+  const objectifGlobal = params?.objectifGlobal || 3000
+  const progressGlobal = Math.min(100, (totalVendu / objectifGlobal) * 100)
 
   return (
     <AppLayout>
@@ -77,16 +79,38 @@ export default function MembreDashboard() {
           <>
             {/* TRÉSO COMMUNE */}
             <div className="card p-6">
-              <div className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: 'var(--blocc-muted)' }}>Trésorerie commune du gang</div>
-              <div className="flex items-end justify-between mb-3">
-                <div className="text-3xl font-black" style={{ color: '#4ade80' }}>{formatMoney(tresoSolde)}</div>
-                <div className="text-right">
-                  <div className="text-sm font-bold text-white">{Math.round(tresoPct)}%</div>
-                  <div className="text-xs" style={{ color: 'var(--blocc-muted)' }}>obj. {formatMoney(tresoObjectif)}</div>
+              <div className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: 'var(--blocc-muted)' }}>Objectifs du gang</div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
+                  <div className="flex items-end justify-between mb-2">
+                    <div>
+                      <div className="text-xs uppercase tracking-wide mb-1" style={{ color: 'var(--blocc-muted)' }}>Trésorerie</div>
+                      <div className="text-2xl font-black" style={{ color: tresoPct >= 100 ? '#4ade80' : '#4ade80' }}>{formatMoney(tresoSolde)}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-lg font-black" style={{ color: tresoPct >= 100 ? '#4ade80' : '#60a5fa' }}>{Math.round(tresoPct)}%</div>
+                      <div className="text-xs" style={{ color: 'var(--blocc-muted)' }}>/ {formatMoney(tresoObjectif)}</div>
+                    </div>
+                  </div>
+                  <div className="progress-bar">
+                    <div className="progress-fill" style={{ width: `${tresoPct}%`, background: tresoPct >= 100 ? 'linear-gradient(90deg,#22c55e,#4ade80)' : 'linear-gradient(90deg,#1e6bff,#00bfff)' }} />
+                  </div>
                 </div>
-              </div>
-              <div className="progress-bar">
-                <div className="progress-fill" style={{ width: `${tresoPct}%`, background: tresoPct >= 100 ? 'linear-gradient(90deg,#22c55e,#4ade80)' : 'linear-gradient(90deg,#1e6bff,#00bfff)' }} />
+                <div>
+                  <div className="flex items-end justify-between mb-2">
+                    <div>
+                      <div className="text-xs uppercase tracking-wide mb-1" style={{ color: 'var(--blocc-muted)' }}>Volume vendu</div>
+                      <div className="text-2xl font-black" style={{ color: '#60a5fa' }}>{formatKg(totalVendu)}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-lg font-black" style={{ color: progressGlobal >= 100 ? '#4ade80' : '#a78bfa' }}>{Math.round(progressGlobal)}%</div>
+                      <div className="text-xs" style={{ color: 'var(--blocc-muted)' }}>/ {formatKg(objectifGlobal)}</div>
+                    </div>
+                  </div>
+                  <div className="progress-bar">
+                    <div className="progress-fill" style={{ width: `${progressGlobal}%`, background: progressGlobal >= 100 ? 'linear-gradient(90deg,#22c55e,#4ade80)' : 'linear-gradient(90deg,#7c3aed,#a78bfa)' }} />
+                  </div>
+                </div>
               </div>
             </div>
 
