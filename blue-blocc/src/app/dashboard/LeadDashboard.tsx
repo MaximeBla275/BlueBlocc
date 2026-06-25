@@ -4,6 +4,7 @@ import React from 'react'
 import { useEffect, useMemo, useState } from 'react'
 import AppLayout from '@/components/layout/AppLayout'
 import { useAuth } from '@/lib/auth-context'
+import { useRealtime } from '@/lib/useRealtime'
 import {
   getVentes, getMembers, getEntrepots, getParametres, getTreso, getDemandes, getSemaines,
   setParametres, createMember, updateMemberRole, updateMemberPassword, deleteMember,
@@ -89,6 +90,8 @@ export default function LeadDashboard() {
     { id: 'membres', label: '👥 Membres' },
     { id: 'payes', label: '💰 Payes' },
   ]
+
+  useRealtime(load)
 
   return (
     <AppLayout>
