@@ -152,6 +152,7 @@ function TabGlobal({ tresoSolde, tresoObjectif, tresoPct, totalVendu, totalCashS
   const [capitalInput, setCapitalInput] = useState('')
   const [objectifInput, setObjectifInput] = useState('')
   const [nomGangInput, setNomGangInput] = useState('')
+  const [objectifKgInput, setObjectifKgInput] = useState('')
   const [saving, setSaving] = useState(false)
 
   const handleSaveTreso = async () => {
@@ -160,6 +161,7 @@ function TabGlobal({ tresoSolde, tresoObjectif, tresoPct, totalVendu, totalCashS
       ...(capitalInput ? { tresoCapitalInitial: Number(capitalInput) } : {}),
       ...(objectifInput ? { tresoObjectif: Number(objectifInput) } : {}),
       ...(nomGangInput ? { nomGang: nomGangInput } : {}),
+      ...(objectifKgInput ? { objectifGlobal: Number(objectifKgInput) } : {}),
     })
     setEditTreso(false); setSaving(false)
     window.location.reload()
@@ -173,7 +175,7 @@ function TabGlobal({ tresoSolde, tresoObjectif, tresoPct, totalVendu, totalCashS
       <div className="card p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--blocc-muted)' }}>Trésorerie commune</div>
-          <button className="btn-ghost text-xs py-1 px-3 flex items-center gap-1" onClick={() => { setEditTreso(!editTreso); setCapitalInput(String(params?.tresoCapitalInitial || 0)); setObjectifInput(String(params?.tresoObjectif || 1500000)); setNomGangInput(params?.nomGang || '') }}>
+          <button className="btn-ghost text-xs py-1 px-3 flex items-center gap-1" onClick={() => { setEditTreso(!editTreso); setCapitalInput(String(params?.tresoCapitalInitial || 0)); setObjectifInput(String(params?.tresoObjectif || 1500000)); setNomGangInput(params?.nomGang || ''); setObjectifKgInput(String(params?.objectifGlobal || 3000)) }}>
             <Pencil size={12} /> Configurer
           </button>
         </div>
@@ -181,10 +183,11 @@ function TabGlobal({ tresoSolde, tresoObjectif, tresoPct, totalVendu, totalCashS
         {editTreso && (
           <div className="mb-5 p-4 rounded-lg space-y-3" style={{ background: 'rgba(30,107,255,0.08)', border: '1px solid rgba(30,107,255,0.2)' }}>
             <div className="text-xs font-bold uppercase tracking-wide text-white mb-2">Configuration</div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
               <div><label className="label">Nom du gang</label><input className="input" value={nomGangInput} onChange={e => setNomGangInput(e.target.value)} /></div>
               <div><label className="label">Capital initial ($)</label><input className="input" type="number" value={capitalInput} onChange={e => setCapitalInput(e.target.value)} /></div>
-              <div><label className="label">Objectif ($)</label><input className="input" type="number" value={objectifInput} onChange={e => setObjectifInput(e.target.value)} /></div>
+              <div><label className="label">Objectif tréso ($)</label><input className="input" type="number" value={objectifInput} onChange={e => setObjectifInput(e.target.value)} /></div>
+              <div><label className="label">Objectif ventes (kg)</label><input className="input" type="number" value={objectifKgInput} onChange={e => setObjectifKgInput(e.target.value)} /></div>
             </div>
             <div className="flex gap-2">
               <button className="btn-primary text-xs py-1.5 px-3 flex items-center gap-1" onClick={handleSaveTreso} disabled={saving}><Save size={12} /> Sauvegarder</button>
@@ -252,40 +255,20 @@ function TabGlobal({ tresoSolde, tresoObjectif, tresoPct, totalVendu, totalCashS
         ))}
       </div>
 
-      {/* Objectifs groupe — double barre */}
+      {/* Objectif ventes */}
       <div className="card p-6">
-        <div className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: 'var(--blocc-muted)' }}>Objectifs groupe — semaine {semaine}</div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="flex items-end justify-between mb-3">
           <div>
-            <div className="flex items-end justify-between mb-2">
-              <div>
-                <div className="text-xs uppercase tracking-wide mb-1" style={{ color: 'var(--blocc-muted)' }}>Volume vendu</div>
-                <div className="text-2xl font-black" style={{ color: '#60a5fa' }}>{formatKg(totalVendu)}</div>
-              </div>
-              <div className="text-right">
-                <div className="text-xl font-black" style={{ color: progressGlobal >= 100 ? '#4ade80' : '#a78bfa' }}>{Math.round(progressGlobal)}%</div>
-                <div className="text-xs" style={{ color: 'var(--blocc-muted)' }}>/ {params ? formatKg(params.objectifGlobal) : '—'}</div>
-              </div>
-            </div>
-            <div className="progress-bar">
-              <div className="progress-fill" style={{ width: `${progressGlobal}%`, background: progressGlobal >= 100 ? 'linear-gradient(90deg,#22c55e,#4ade80)' : 'linear-gradient(90deg,#7c3aed,#a78bfa)' }} />
-            </div>
+            <div className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: 'var(--blocc-muted)' }}>Objectif ventes — semaine {semaine}</div>
+            <div className="text-3xl font-black" style={{ color: '#60a5fa' }}>{formatKg(totalVendu)}</div>
           </div>
-          <div>
-            <div className="flex items-end justify-between mb-2">
-              <div>
-                <div className="text-xs uppercase tracking-wide mb-1" style={{ color: 'var(--blocc-muted)' }}>Trésorerie</div>
-                <div className="text-2xl font-black" style={{ color: '#4ade80' }}>{formatMoney(tresoSolde)}</div>
-              </div>
-              <div className="text-right">
-                <div className="text-xl font-black" style={{ color: tresoPct >= 100 ? '#4ade80' : '#60a5fa' }}>{Math.round(tresoPct)}%</div>
-                <div className="text-xs" style={{ color: 'var(--blocc-muted)' }}>/ {formatMoney(tresoObjectif)}</div>
-              </div>
-            </div>
-            <div className="progress-bar">
-              <div className="progress-fill" style={{ width: `${tresoPct}%`, background: tresoPct >= 100 ? 'linear-gradient(90deg,#22c55e,#4ade80)' : 'linear-gradient(90deg,#1e6bff,#00bfff)' }} />
-            </div>
+          <div className="text-right">
+            <div className="text-2xl font-black" style={{ color: progressGlobal >= 100 ? '#4ade80' : '#a78bfa' }}>{Math.round(progressGlobal)}%</div>
+            <div className="text-xs" style={{ color: 'var(--blocc-muted)' }}>/ {params ? formatKg(params.objectifGlobal) : '—'}</div>
           </div>
+        </div>
+        <div className="progress-bar">
+          <div className="progress-fill" style={{ width: `${progressGlobal}%`, background: progressGlobal >= 100 ? 'linear-gradient(90deg,#22c55e,#4ade80)' : 'linear-gradient(90deg,#7c3aed,#a78bfa)' }} />
         </div>
       </div>
 
