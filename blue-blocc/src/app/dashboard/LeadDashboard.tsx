@@ -656,9 +656,9 @@ function TabMembres({ membres, statsMembres, params, semaine, load, customRoles 
                           <button className="text-xs btn-ghost py-0.5 px-2" onClick={() => setEditRoleId(null)}>×</button>
                         </div>
                       ) : (
-                        <div className="text-xs mt-0.5 flex items-center gap-2" style={{ color: 'var(--blocc-muted)' }}>
-                          {m.role}
-                          <button className="opacity-60 hover:opacity-100" onClick={() => { setEditRoleId(m.uid); setEditRole(m.role); setEditCustomRoleId(m.customRoleId || '') }}><Pencil size={11} /></button>
+                        <div className="mt-0.5 flex items-center gap-2">
+                          {(() => { const rd = getRoleDisplay(m.role, m.customRoleId, customRoles); return <span className="text-xs px-2 py-0.5 rounded-full font-semibold" style={{ background: rd.couleur + '22', color: rd.couleur }}>{rd.label}</span> })()}
+                          <button className="opacity-60 hover:opacity-100" style={{ color: 'var(--blocc-muted)' }} onClick={() => { setEditRoleId(m.uid); setEditRole(m.role); setEditCustomRoleId(m.customRoleId || '') }}><Pencil size={11} /></button>
                         </div>
                       )}
                     </div>
