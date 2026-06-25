@@ -469,3 +469,44 @@ export async function getRendements(): Promise<RendementItem[]> {
     return { itemId: item.id, itemNom: item.nom, prixAchatMoyen: item.prixAchat, prixVenteConfig, prixVenteReel, rendementConfig, rendementReel, totalKgVendus, totalCashSale, nbVentes: vi.length }
   })
 }
+
+// ─── NETTOYAGE HISTORIQUE ────────────────────────────────────────────────────
+export async function nettoyerHistorique(): Promise<void> {
+  const { data: p } = await supabase.from('parametres').select('nb_semaines_historique').eq('id', 1).single()
+  const nbSemaines = p ? Number(p.nb_semaines_historique) : 5
+
+  // Calculer les semaines à garder
+  const { getSemainesAGarder } = await import('./utils')
+  const aGarder = getSemainesAGarder(nbSemaines)
+
+  // Supprimer les ventes plus anciennes
+  const { data: toutesVentes } = await supabase.from('ventes').select('semaine')
+  const semainesDansDb = Array.from(new Set((toutesVentes || []).map((v: Record<string, unknown>) => String(v.semaine))))
+  const aSupprimer = semainesDansDb.filter(s => !aGarder.includes(s))
+
+  if (aSupprimer.length > 0) {
+    for (const semaine of aSupprimer) {
+      await supabase.from('ventes').delete().eq('semaine', semaine)
+    }
+    // Aussi nettoyer les mouvements tréso trop anciens (garder 200 max)
+    const { data: mouvements } = await supabase
+      .from('treso_mouvements')
+      .select('id')
+      .order('created_at', { ascending: false })
+    if (mouvements && mouvements.length > 200) {
+      const aEffacer = (mouvements as Record<string, unknown>[]).slice(200).map(m => String(m.id))
+      for (const id of aEffacer) {
+        await supabase.from('treso_mouvements').delete().eq('id', id)
+      }
+    }
+  }
+}
+
+export async function getNbSemainesHistorique(): Promise<number> {
+  const { data } = await supabase.from('parametres').select('nb_semaines_historique').eq('id', 1).single()
+  return data ? Number(data.nb_semaines_historique) : 5
+}
+
+export async function setNbSemainesHistorique(nb: number): Promise<void> {
+  await supabase.from('parametres').update({ nb_semaines_historique: nb }).eq('id', 1)
+}
