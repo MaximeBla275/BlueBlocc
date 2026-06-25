@@ -4,13 +4,13 @@ import React, { useEffect, useState } from 'react'
 import AppLayout from '@/components/layout/AppLayout'
 import { useAuth } from '@/lib/auth-context'
 import { useRealtime } from '@/lib/useRealtime'
-import { getDemandes, addDemande, traiterDemande, getEntrepots, getItems } from '@/lib/db'
+import { getDemandes, addDemande, traiterDemande, supprimerDemande, getEntrepots, getItems } from '@/lib/db'
 import { DemandeStock, Entrepot, Item } from '@/types'
 import { formatMoney, formatKg } from '@/lib/utils'
-import { Plus, CheckCircle, XCircle, Package } from 'lucide-react'
+import { Plus, CheckCircle, XCircle, Package, Trash2 } from 'lucide-react'
 
 export default function DemandesPage() {
-  const { profile, hasPermission } = useAuth()
+  const { profile, hasPermission, isLead } = useAuth()
   const [demandes, setDemandes] = useState<DemandeStock[]>([])
   const [entrepots, setEntrepots] = useState<Entrepot[]>([])
   const [items, setItems] = useState<Item[]>([])
@@ -42,6 +42,8 @@ export default function DemandesPage() {
 
   useEffect(() => { if (profile) load() }, [profile])
 
+  useRealtime(load)
+
   const handleItemChange = (itemId: string) => {
     setSelectedItemId(itemId)
     const item = items.find(i => i.id === itemId)
@@ -60,7 +62,11 @@ export default function DemandesPage() {
     if (!selectedItemId) { setError('Choisis un item'); return }
     const item = items.find(i => i.id === selectedItemId)
     setSubmitting(true)
-    await addDemande({ membreId: profile.uid, membrePseudo: profile.pseudo, itemId: selectedItemId, itemNom: item?.nom || selectedItemId, quantite: qty, prixAchat, montantTotal: qty * prixAchat, entrepotId })
+    await addDemande({
+      membreId: profile.uid, membrePseudo: profile.pseudo,
+      itemId: selectedItemId, itemNom: item?.nom || selectedItemId,
+      quantite: qty, prixAchat, montantTotal: qty * prixAchat, entrepotId,
+    })
     setQuantite(''); setShowForm(false); setSubmitting(false); await load()
   }
 
@@ -69,13 +75,16 @@ export default function DemandesPage() {
     await traiterDemande(id, statut, profile.uid); await load()
   }
 
+  const handleSupprimer = async (id: string) => {
+    if (!confirm("Supprimer cette demande de l'historique ?")) return
+    await supprimerDemande(id); await load()
+  }
+
   const en_attente = demandes.filter(d => d.statut === 'en_attente')
   const traitees = demandes.filter(d => d.statut !== 'en_attente')
   const selectedItem = items.find(i => i.id === selectedItemId)
   const qty = Number(quantite)
   const prixAchat = Number(prixAchatInput)
-
-  useRealtime(load)
 
   return (
     <AppLayout>
@@ -133,7 +142,6 @@ export default function DemandesPage() {
               </div>
               {qty > 0 && prixAchat > 0 && (
                 <div className="rounded-lg p-4 space-y-2" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--blocc-border)' }}>
-                  <div className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: 'var(--blocc-muted)' }}>Résumé</div>
                   <div className="flex justify-between text-sm">
                     <span style={{ color: 'var(--blocc-muted)' }}>Quantité</span>
                     <span className="font-semibold text-white">{formatKg(qty)}</span>
@@ -143,7 +151,7 @@ export default function DemandesPage() {
                     <span className="font-semibold text-white">{formatMoney(prixAchat)}/kg</span>
                   </div>
                   <div className="flex justify-between text-sm border-t pt-2" style={{ borderColor: 'var(--blocc-border)' }}>
-                    <span style={{ color: 'var(--blocc-muted)' }}>Coût total (sera déduit de la tréso si validée)</span>
+                    <span style={{ color: 'var(--blocc-muted)' }}>Coût total (déduit de la tréso si validée)</span>
                     <span className="font-bold" style={{ color: '#f87171' }}>{formatMoney(qty * prixAchat)}</span>
                   </div>
                 </div>
@@ -183,49 +191,77 @@ export default function DemandesPage() {
                           </div>
                         </div>
                       </div>
-                      {canValider && (
-                        <div className="flex gap-2">
-                          <button className="btn-success text-xs py-1.5 px-3 flex items-center gap-1" onClick={() => handleTraiter(d.id, 'validee')}>
-                            <CheckCircle size={13} /> Valider → +{formatKg(d.quantite)}
+                      <div className="flex gap-2 flex-wrap">
+                        {canValider && (
+                          <>
+                            <button className="btn-success text-xs py-1.5 px-3 flex items-center gap-1" onClick={() => handleTraiter(d.id, 'validee')}>
+                              <CheckCircle size={13} /> Valider
+                            </button>
+                            <button className="btn-danger text-xs py-1.5 px-3 flex items-center gap-1" onClick={() => handleTraiter(d.id, 'refusee')}>
+                              <XCircle size={13} /> Refuser
+                            </button>
+                          </>
+                        )}
+                        {isLead && (
+                          <button className="p-2 rounded-lg" style={{ color: '#f87171', background: 'rgba(239,68,68,0.1)' }}
+                            onClick={() => handleSupprimer(d.id)} title="Supprimer">
+                            <Trash2 size={14} />
                           </button>
-                          <button className="btn-danger text-xs py-1.5 px-3 flex items-center gap-1" onClick={() => handleTraiter(d.id, 'refusee')}>
-                            <XCircle size={13} /> Refuser
-                          </button>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
               </div>
             )}
+
             {traitees.length > 0 && (
               <div className="card overflow-hidden">
-                <div className="px-6 py-4 border-b" style={{ borderColor: 'var(--blocc-border)' }}>
-                  <h2 className="text-sm font-bold uppercase tracking-widest" style={{ color: 'var(--blocc-muted)' }}>Historique</h2>
+                <div className="px-6 py-4 border-b flex items-center justify-between" style={{ borderColor: 'var(--blocc-border)' }}>
+                  <h2 className="text-sm font-bold uppercase tracking-widest" style={{ color: 'var(--blocc-muted)' }}>Historique ({traitees.length})</h2>
+                  {isLead && (
+                    <button className="text-xs flex items-center gap-1" style={{ color: '#f87171' }}
+                      onClick={async () => {
+                        if (!confirm("Supprimer tout l'historique des demandes traitées ?")) return
+                        await Promise.all(traitees.map(d => supprimerDemande(d.id)))
+                        await load()
+                      }}>
+                      <Trash2 size={12} /> Tout supprimer
+                    </button>
+                  )}
                 </div>
                 <div className="divide-y" style={{ borderColor: 'var(--blocc-border)' }}>
                   {traitees.map(d => {
                     const color = d.statut === 'validee' ? '#4ade80' : '#f87171'
                     return (
-                      <div key={d.id} className="px-6 py-4 flex items-center gap-4">
-                        <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: `${color}20` }}>
-                          {d.statut === 'validee' ? <CheckCircle size={14} style={{ color }} /> : <XCircle size={14} style={{ color }} />}
-                        </div>
-                        <div>
-                          <div className="text-sm font-semibold text-white">{d.membrePseudo} — {formatKg(d.quantite)} {d.itemNom}</div>
-                          <div className="text-xs mt-0.5 flex gap-3" style={{ color: 'var(--blocc-muted)' }}>
-                            <span style={{ color }}>{d.statut === 'validee' ? 'Validée' : 'Refusée'}</span>
-                            <span>{entrepots.find(e => e.id === d.entrepotId)?.nom}</span>
-                            <span>{formatMoney(d.prixAchat)}/kg</span>
-                            <span>{new Date(d.createdAt).toLocaleDateString('fr-FR')}</span>
+                      <div key={d.id} className="px-6 py-4 flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: `${color}20` }}>
+                            {d.statut === 'validee' ? <CheckCircle size={14} style={{ color }} /> : <XCircle size={14} style={{ color }} />}
+                          </div>
+                          <div>
+                            <div className="text-sm font-semibold text-white">{d.membrePseudo} — {formatKg(d.quantite)} {d.itemNom}</div>
+                            <div className="text-xs mt-0.5 flex gap-3" style={{ color: 'var(--blocc-muted)' }}>
+                              <span style={{ color }}>{d.statut === 'validee' ? 'Validée' : 'Refusée'}</span>
+                              <span>{entrepots.find(e => e.id === d.entrepotId)?.nom}</span>
+                              <span>{formatMoney(d.prixAchat)}/kg</span>
+                              <span>{new Date(d.createdAt).toLocaleDateString('fr-FR')}</span>
+                            </div>
                           </div>
                         </div>
+                        {isLead && (
+                          <button className="p-2 rounded-lg flex-shrink-0" style={{ color: '#f87171', background: 'rgba(239,68,68,0.1)' }}
+                            onClick={() => handleSupprimer(d.id)} title="Supprimer">
+                            <Trash2 size={14} />
+                          </button>
+                        )}
                       </div>
                     )
                   })}
                 </div>
               </div>
             )}
+
             {demandes.length === 0 && (
               <div className="card p-12 text-center" style={{ color: 'var(--blocc-muted)' }}>
                 <Package size={40} className="mx-auto mb-4 opacity-30" />
