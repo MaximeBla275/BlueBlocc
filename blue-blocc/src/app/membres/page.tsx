@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import AppLayout from '@/components/layout/AppLayout'
 import { useAuth } from '@/lib/auth-context'
+import { useRealtime } from '@/lib/useRealtime'
 import { getMembers, getVentes, getParametres, getCustomRoles, updateMemberRole, updateMemberPassword, deleteMember, createMember, createCustomRole, updateCustomRole, deleteCustomRole, ALL_PERMISSIONS } from '@/lib/db'
 import { Member, Parametres, CustomRole, Permission, Vente } from '@/types'
 import { formatKg, formatMoney, getSemaine, calculerSalaire } from '@/lib/utils'
@@ -93,6 +94,8 @@ export default function MembresPage() {
       <div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" /></div>
     </AppLayout>
   )
+
+  useRealtime(load)
 
   return (
     <AppLayout>
