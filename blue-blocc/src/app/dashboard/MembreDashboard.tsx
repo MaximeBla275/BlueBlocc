@@ -124,11 +124,11 @@ export default function MembreDashboard() {
                 </div>
                 <div className="text-center border-x" style={{ borderColor: 'var(--blocc-border)' }}>
                   <div className="text-2xl font-black" style={{ color: '#60a5fa' }}>{formatMoney(totalCashSale)}</div>
-                  <div className="text-xs mt-1 uppercase tracking-wide" style={{ color: 'var(--blocc-muted)' }}>Cash sale</div>
+                  <div className="text-xs mt-1 uppercase tracking-wide" style={{ color: 'var(--blocc-muted)' }}>Ventes</div>
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-black" style={{ color: '#4ade80' }}>{formatMoney(totalBenefSale)}</div>
-                  <div className="text-xs mt-1 uppercase tracking-wide" style={{ color: 'var(--blocc-muted)' }}>Bénéf sale</div>
+                  <div className="text-xs mt-1 uppercase tracking-wide" style={{ color: 'var(--blocc-muted)' }}>Profit</div>
                 </div>
               </div>
             </div>
@@ -148,8 +148,8 @@ export default function MembreDashboard() {
                 </div>
                 <div className="progress-bar"><div className="progress-fill" style={{ width: `${mesStats.pct}%`, background: mesStats.pct >= 100 ? 'linear-gradient(90deg,#22c55e,#4ade80)' : undefined }} /></div>
                 <div className="grid grid-cols-3 gap-3 mt-4">
-                  <div><div className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--blocc-muted)' }}>Cash sale</div><div className="text-sm font-bold" style={{ color: '#60a5fa' }}>{formatMoney(mesStats.cashSale)}</div></div>
-                  <div><div className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--blocc-muted)' }}>Bénéf sale</div><div className="text-sm font-bold" style={{ color: '#4ade80' }}>{formatMoney(mesStats.benefSale)}</div></div>
+                  <div><div className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--blocc-muted)' }}>Ventes</div><div className="text-sm font-bold" style={{ color: '#60a5fa' }}>{formatMoney(mesStats.cashSale)}</div></div>
+                  <div><div className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--blocc-muted)' }}>Profit</div><div className="text-sm font-bold" style={{ color: '#4ade80' }}>{formatMoney(mesStats.benefSale)}</div></div>
                   <div><div className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--blocc-muted)' }}>Salaire estimé</div><div className="text-sm font-bold text-white">{formatMoney(calculerSalaire(mesStats.kg, params))}</div></div>
                 </div>
               </div>
@@ -214,7 +214,7 @@ export default function MembreDashboard() {
                       </div>
                       <div className="grid grid-cols-3 gap-2 mt-3 pl-10">
                         <div><div className="text-[10px] uppercase" style={{ color: 'var(--blocc-muted)' }}>Kg</div><div className="text-xs font-bold text-white">{formatKg(m.kg)}</div></div>
-                        <div><div className="text-[10px] uppercase" style={{ color: 'var(--blocc-muted)' }}>Cash</div><div className="text-xs font-bold" style={{ color: '#60a5fa' }}>{formatMoney(m.cashSale)}</div></div>
+                        <div><div className="text-[10px] uppercase" style={{ color: 'var(--blocc-muted)' }}>Ventes</div><div className="text-xs font-bold" style={{ color: '#60a5fa' }}>{formatMoney(m.cashSale)}</div></div>
                         <div><div className="text-[10px] uppercase" style={{ color: 'var(--blocc-muted)' }}>Bénéf</div><div className="text-xs font-bold" style={{ color: '#4ade80' }}>{formatMoney(m.benefSale)}</div></div>
                       </div>
                     </div>
