@@ -236,3 +236,14 @@ select.input:focus {
 .glow-blue {
   box-shadow: 0 0 30px rgba(30, 107, 255, 0.15);
 }
+
+/* Fix dropdown clipping in cards and flex containers */
+.card {
+  overflow: visible !important;
+}
+
+select.input,
+select {
+  position: relative;
+  z-index: 10;
+}
