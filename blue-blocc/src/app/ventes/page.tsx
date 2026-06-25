@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import AppLayout from '@/components/layout/AppLayout'
 import { useAuth } from '@/lib/auth-context'
+import { useRealtime } from '@/lib/useRealtime'
 import { getVentes, addVente, getItems, getStockDisponible, getSemaines, getRendements } from '@/lib/db'
 import { Vente, Item, RendementItem } from '@/types'
 import { formatMoney, formatKg, getSemaine } from '@/lib/utils'
@@ -115,6 +116,8 @@ export default function VentesPage() {
   const coutEstime = qty > 0 && prix > 0 ? qty * prix : null
   const benefEstime = coutEstime !== null && Number(cashSale) > 0 ? Number(cashSale) - coutEstime : null
   const selectedItem = items.find(i => i.id === selectedItemId)
+
+  useRealtime(load)
 
   return (
     <AppLayout>
