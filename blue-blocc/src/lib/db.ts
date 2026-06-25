@@ -512,6 +512,10 @@ export async function getNbSemainesHistorique(): Promise<number> {
   return data ? Number(data.nb_semaines_historique) : 5
 }
 
+export async function supprimerDemande(demandeId: string): Promise<void> {
+  await supabase.from('demandes').delete().eq('id', demandeId)
+}
+
 export async function setNbSemainesHistorique(nb: number): Promise<void> {
   await supabase.from('parametres').update({ nb_semaines_historique: nb }).eq('id', 1)
 }
