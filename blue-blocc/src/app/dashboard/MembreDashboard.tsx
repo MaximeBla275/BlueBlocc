@@ -4,6 +4,7 @@ import React from 'react'
 import { useEffect, useMemo, useState } from 'react'
 import AppLayout from '@/components/layout/AppLayout'
 import { useAuth } from '@/lib/auth-context'
+import { useRealtime } from '@/lib/useRealtime'
 import { getVentes, getMembers, getEntrepots, getParametres, getTreso, getSemaines } from '@/lib/db'
 import { Vente, Member, Entrepot, Parametres, Treso } from '@/types'
 import { formatMoney, formatKg, getSemaine, calculerSalaire } from '@/lib/utils'
@@ -53,6 +54,8 @@ export default function MembreDashboard() {
   const tresoObjectif = params?.tresoObjectif || 1500000
   const tresoSolde = treso?.solde || 0
   const tresoPct = Math.min(100, (tresoSolde / tresoObjectif) * 100)
+
+  useRealtime(load)
 
   return (
     <AppLayout>
