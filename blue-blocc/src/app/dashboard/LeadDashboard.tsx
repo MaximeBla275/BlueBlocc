@@ -9,7 +9,7 @@ import {
   getVentes, getMembers, getEntrepots, getParametres, getTreso, getDemandes, getSemaines,
   setParametres, createMember, updateMemberRole, updateMemberPassword, deleteMember,
   getItems, createItem, updateItem, deleteItem, updateItemPrixVente, getRendements, nettoyerHistorique,
-  createEntrepot, updateEntrepot, rechargerEntrepot, deleteEntrepot, resetTreso, checkResetHebdo
+  createEntrepot, updateEntrepot, rechargerEntrepot, deleteEntrepot, resetTreso, checkResetHebdo, resetTresoManuel, resetTresPur
 } from '@/lib/db'
 import { Vente, Member, Entrepot, Parametres, Treso, Item, DemandeStock } from '@/types'
 import { formatMoney, formatKg, getSemaine, calculerSalaire, getRoleDisplay } from '@/lib/utils'
@@ -225,9 +225,8 @@ function TabGlobal({ tresoSolde, tresoObjectif, tresoPct, totalVendu, totalCashS
 
         <div className="flex gap-2 mb-4">
           <button className="btn-danger text-xs py-1.5 px-3 flex items-center gap-2" onClick={() => {
-            if (confirm('Remettre la trésorerie à zéro ? Cette action est irréversible.')) {
-              resetTreso()
-              window.location.reload()
+            if (confirm('Reset complet ? Efface le solde ET tout l\'historique. Pour corriger une erreur uniquement.')) {
+              resetTresPur().then(() => window.location.reload())
             }
           }}>
             Remettre la tréso à zéro
