@@ -92,6 +92,11 @@ export default function LeadDashboard() {
     })
   }, [membres, ventes, params])
 
+  // Classement par kg pour le dashboard (vue globale)
+  const classementVentes = useMemo(() => {
+    return [...statsMembres].sort((a, b) => b.kg - a.kg)
+  }, [statsMembres])
+
   const semaineIdx = semaines.indexOf(semaine)
   const tresoSolde = treso?.solde || 0
   const tresoObjectif = params?.tresoObjectif || 1500000
@@ -149,7 +154,7 @@ export default function LeadDashboard() {
           <div className="flex items-center justify-center h-40"><div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" /></div>
         ) : (
           <>
-            {tab === 'global' && <TabGlobal {...{ tresoSolde, tresoObjectif, tresoPct, totalVendu, totalCashSale, totalBenefSale, totalCouts, totalPertes, stockTotal, capaciteTotale, progressGlobal, params, statsMembres, semaine, treso, customRoles }} />}
+            {tab === 'global' && <TabGlobal {...{ tresoSolde, tresoObjectif, tresoPct, totalVendu, totalCashSale, totalBenefSale, totalCouts, totalPertes, stockTotal, capaciteTotale, progressGlobal, params, statsMembres: classementVentes, semaine, treso, customRoles }} />}
             {tab === 'compta' && <TabCompta {...{ entrepots, items, ventes, semaine, params, load }} />}
             {tab === 'membres' && <TabMembres {...{ membres, statsMembres, params, semaine, load, customRoles }} />}
             {tab === 'payes' && <TabPayes {...{ statsMembres, params, load }} />}
