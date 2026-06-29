@@ -9,7 +9,7 @@ import {
   getVentes, getMembers, getEntrepots, getParametres, getTreso, getDemandes, getSemaines,
   setParametres, createMember, updateMemberRole, updateMemberPassword, deleteMember,
   getItems, createItem, updateItem, deleteItem, updateItemPrixVente, getRendements, nettoyerHistorique,
-  createEntrepot, updateEntrepot, rechargerEntrepot, deleteEntrepot, resetTreso
+  createEntrepot, updateEntrepot, rechargerEntrepot, deleteEntrepot, resetTreso, checkResetHebdo
 } from '@/lib/db'
 import { Vente, Member, Entrepot, Parametres, Treso, Item, DemandeStock } from '@/types'
 import { formatMoney, formatKg, getSemaine, calculerSalaire, getRoleDisplay } from '@/lib/utils'
@@ -41,6 +41,7 @@ export default function LeadDashboard() {
     setLoading(true)
     // Nettoyage auto de l'historique (lead seulement)
     nettoyerHistorique().catch(() => {})
+    checkResetHebdo().catch(() => {})
     const [v, m, e, p, t, d, i, s] = await Promise.all([
       getVentes({ semaine }), getMembers(), getEntrepots(), getParametres(),
       getTreso(), getDemandes({ statut: 'en_attente' }), getItems(), getSemaines()
@@ -658,7 +659,7 @@ function TabMembres({ membres, statsMembres, params, semaine, load, customRoles 
                       ) : (
                         <div className="mt-0.5 flex items-center gap-2">
                           {(() => { const rd = getRoleDisplay(m.role, m.customRoleId, customRoles); return <span className="text-xs px-2 py-0.5 rounded-full font-semibold" style={{ background: rd.couleur + '22', color: rd.couleur }}>{rd.label}</span> })()}
-                          <button className="opacity-60 hover:opacity-100" style={{ color: 'var(--blocc-muted)' }} onClick={() => { setEditRoleId(m.uid); setEditRole(m.role); setEditCustomRoleId(m.customRoleId || '') }}><Pencil size={11} /></button>
+                          <button className="opacity-60 hover:opacity-100" onClick={() => { setEditRoleId(m.uid); setEditRole(m.role); setEditCustomRoleId(m.customRoleId || '') }}><Pencil size={11} /></button>
                         </div>
                       )}
                     </div>
