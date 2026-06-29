@@ -66,6 +66,11 @@ export default function MembreDashboard() {
   const semaineIdx = semaines.indexOf(semaine)
   const tresoObjectif = params?.tresoObjectif || 1500000
   const tresoSolde = treso?.solde || 0
+  // Classement trié par kg pour la vue globale membre
+  const classementVentes = useMemo(() => {
+    return [...statsMembres].sort((a, b) => b.kg - a.kg)
+  }, [statsMembres])
+
   const tresoPct = Math.min(100, (tresoSolde / tresoObjectif) * 100)
   const objectifGlobal = params?.objectifGlobal || 3000
   const progressGlobal = Math.min(100, (totalVendu / objectifGlobal) * 100)
@@ -208,7 +213,7 @@ export default function MembreDashboard() {
               <div className="card p-6">
                 <div className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: 'var(--blocc-muted)' }}>Classement membres</div>
                 <div className="space-y-3">
-                  {statsMembres.map((m, idx) => (
+                  {classementVentes.map((m, idx) => (
                     <div key={m.uid} className="rounded-xl p-4" style={{ background: m.uid === profile?.uid ? 'rgba(30,107,255,0.08)' : 'rgba(255,255,255,0.03)', border: `1px solid ${m.uid === profile?.uid ? 'rgba(30,107,255,0.3)' : 'var(--blocc-border)'}` }}>
                       <div className="flex items-center gap-3">
                         <div className="text-xs font-bold w-5" style={{ color: idx === 0 ? '#fbbf24' : 'var(--blocc-muted)' }}>#{idx + 1}</div>
