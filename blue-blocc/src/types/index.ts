@@ -11,6 +11,8 @@ export type Permission =
   | 'gerer_roles'
   | 'voir_dashboard_lead'
   | 'gerer_payes'
+  | 'voir_coffre'
+  | 'modifier_treso'
 
 export interface CustomRole {
   id: string
@@ -103,19 +105,37 @@ export interface Parametres {
   salaireBase: number
   bonusMontant: number
   bonusPalier: number
+  coffreObjectif: number
 }
 
 export interface TresoMouvement {
   id: string
-  type: 'entree' | 'sortie' | 'init'
+  type: 'entree' | 'sortie' | 'init' | 'transfert_coffre' | 'transfert_treso' | 'ajustement' | 'reset'
   montant: number
   label: string
+  semaine?: string
   ref?: string
+  createdAt: string
+}
+
+export interface TresoSemaine {
+  semaine: string
+  soldeFinal: number
+  totalEntrees: number
+  totalSorties: number
   createdAt: string
 }
 
 export interface Treso {
   solde: number
+  semaine: string
+  mouvements: TresoMouvement[]
+  historique: TresoSemaine[]
+}
+
+export interface Coffre {
+  solde: number
+  objectif: number
   mouvements: TresoMouvement[]
 }
 
