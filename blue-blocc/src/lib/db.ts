@@ -22,9 +22,11 @@ export const ALL_PERMISSIONS: { id: Permission; label: string; desc: string }[] 
   { id: 'voir_dashboard_lead', label: 'Dashboard lead', desc: 'Accès au dashboard complet lead' },
   { id: 'gerer_payes', label: 'Gérer les payes', desc: "Accès onglet payes et config salaires" },
   { id: 'gerer_roles', label: 'Gérer les rôles', desc: 'Créer/modifier les rôles personnalisés' },
+  { id: 'voir_coffre', label: 'Voir le coffre', desc: 'Accès à la page coffre et transferts' },
+  { id: 'modifier_treso', label: 'Modifier la tréso', desc: 'Ajuster manuellement le solde de la tréso' },
 ]
 
-const ALL_PERMS: Permission[] = ALL_PERMISSIONS.map(p => p.id)
+const ALL_PERMS: Permission[] = ALL_PERMISSIONS.map(p => p.id) as Permission[]
 
 export const SYSTEM_ROLE_PERMISSIONS: Record<string, Permission[]> = {
   'lead': ALL_PERMS,
@@ -528,4 +530,195 @@ export async function supprimerDemande(demandeId: string): Promise<void> {
 
 export async function updateCustomRoleOrdre(roles: { id: string; ordre: number }[]): Promise<void> {
   await Promise.all(roles.map(r => supabase.from('custom_roles').update({ ordre: r.ordre }).eq('id', r.id)))
+}
+
+// ─── TRESO HEBDOMADAIRE ──────────────────────────────────────────────────────
+export async function getTresoComplete(): Promise<import('@/types').Treso> {
+  const semaine = getSemaine()
+  const [{ data: t }, { data: m }, { data: h }] = await Promise.all([
+    supabase.from('treso').select('*').eq('id', 1).single(),
+    supabase.from('treso_mouvements').select('*').order('created_at', { ascending: false }).limit(50),
+    supabase.from('treso_semaines').select('*').order('semaine', { ascending: false }).limit(10),
+  ])
+  return {
+    solde: t ? Number(t.solde) : 0,
+    semaine,
+    mouvements: (m || []).map((mv: Record<string, unknown>) => ({
+      id: String(mv.id),
+      type: mv.type as import('@/types').TresoMouvement['type'],
+      montant: Number(mv.montant),
+      label: String(mv.label),
+      semaine: mv.semaine ? String(mv.semaine) : undefined,
+      ref: mv.ref ? String(mv.ref) : undefined,
+      createdAt: String(mv.created_at),
+    })),
+    historique: (h || []).map((s: Record<string, unknown>) => ({
+      semaine: String(s.semaine),
+      soldeFinal: Number(s.solde_final),
+      totalEntrees: Number(s.total_entrees),
+      totalSorties: Number(s.total_sorties),
+      createdAt: String(s.created_at),
+    })),
+  }
+}
+
+export async function ajusterTreso(montant: number, label: string, type: 'entree' | 'sortie' | 'ajustement'): Promise<void> {
+  const semaine = getSemaine()
+  const { data: t } = await supabase.from('treso').select('solde').eq('id', 1).single()
+  const currentSolde = t ? Number(t.solde) : 0
+  const newSolde = type === 'sortie' ? currentSolde - Math.abs(montant) : currentSolde + Math.abs(montant)
+  await Promise.all([
+    supabase.from('treso').update({ solde: newSolde, updated_at: now() }).eq('id', 1),
+    supabase.from('treso_mouvements').insert({
+      id: genId('mv'), type, montant: Math.abs(montant), label, semaine, created_at: now()
+    }),
+  ])
+}
+
+export async function cloturerSemaineTreso(): Promise<void> {
+  const semaine = getSemaine()
+  const { data: t } = await supabase.from('treso').select('solde').eq('id', 1).single()
+  const soldeFinal = t ? Number(t.solde) : 0
+  
+  // Calculer totaux entrées/sorties de la semaine
+  const { data: mouvements } = await supabase
+    .from('treso_mouvements')
+    .select('*')
+    .eq('semaine', semaine)
+  
+  const totalEntrees = (mouvements || [])
+    .filter((m: Record<string, unknown>) => m.type === 'entree')
+    .reduce((s: number, m: Record<string, unknown>) => s + Number(m.montant), 0)
+  const totalSorties = (mouvements || [])
+    .filter((m: Record<string, unknown>) => m.type === 'sortie')
+    .reduce((s: number, m: Record<string, unknown>) => s + Number(m.montant), 0)
+
+  // Archiver la semaine
+  await supabase.from('treso_semaines').upsert({
+    id: genId('tresosem'),
+    semaine,
+    solde_final: soldeFinal,
+    total_entrees: totalEntrees,
+    total_sorties: totalSorties,
+    created_at: now(),
+  })
+
+  // Reset le solde à zéro
+  await Promise.all([
+    supabase.from('treso').update({ solde: 0, updated_at: now() }).eq('id', 1),
+    supabase.from('treso_mouvements').insert({
+      id: genId('mv'), type: 'reset', montant: soldeFinal,
+      label: `Clôture semaine ${semaine} — solde archivé`, semaine, created_at: now()
+    }),
+  ])
+}
+
+export async function resetTresoManuel(label = 'Reset manuel par lead'): Promise<void> {
+  const semaine = getSemaine()
+  const { data: t } = await supabase.from('treso').select('solde').eq('id', 1).single()
+  const soldeFinal = t ? Number(t.solde) : 0
+  await Promise.all([
+    supabase.from('treso').update({ solde: 0, updated_at: now() }).eq('id', 1),
+    supabase.from('treso_mouvements').insert({
+      id: genId('mv'), type: 'reset', montant: soldeFinal,
+      label, semaine, created_at: now()
+    }),
+  ])
+}
+
+// ─── COFFRE ──────────────────────────────────────────────────────────────────
+export async function getCoffre(): Promise<import('@/types').Coffre> {
+  const [{ data: c }, { data: m }] = await Promise.all([
+    supabase.from('coffre').select('*').eq('id', 1).single(),
+    supabase.from('coffre_mouvements').select('*').order('created_at', { ascending: false }).limit(50),
+  ])
+  return {
+    solde: c ? Number(c.solde) : 0,
+    objectif: c ? Number(c.objectif) : 500000,
+    mouvements: (m || []).map((mv: Record<string, unknown>) => ({
+      id: String(mv.id),
+      type: mv.type as import('@/types').TresoMouvement['type'],
+      montant: Number(mv.montant),
+      label: String(mv.label),
+      ref: mv.ref ? String(mv.ref) : undefined,
+      createdAt: String(mv.created_at),
+    })),
+  }
+}
+
+export async function transfererVersCoffre(montant: number, label: string): Promise<void> {
+  // Retirer de la tréso
+  const { data: t } = await supabase.from('treso').select('solde').eq('id', 1).single()
+  const newTreso = (t ? Number(t.solde) : 0) - montant
+  // Ajouter au coffre
+  const { data: cof } = await supabase.from('coffre').select('solde').eq('id', 1).single()
+  const newCoffre = (cof ? Number(cof.solde) : 0) + montant
+  const semaine = getSemaine()
+  await Promise.all([
+    supabase.from('treso').update({ solde: newTreso, updated_at: now() }).eq('id', 1),
+    supabase.from('coffre').update({ solde: newCoffre, updated_at: now() }).eq('id', 1),
+    supabase.from('treso_mouvements').insert({ id: genId('mv'), type: 'transfert_coffre', montant, label: `→ Coffre : ${label}`, semaine, created_at: now() }),
+    supabase.from('coffre_mouvements').insert({ id: genId('mv'), type: 'transfert_coffre', montant, label: `← Tréso : ${label}`, created_at: now() }),
+  ])
+}
+
+export async function transfererDepuisCoffre(montant: number, label: string): Promise<void> {
+  const { data: cof } = await supabase.from('coffre').select('solde').eq('id', 1).single()
+  const newCoffre = (cof ? Number(cof.solde) : 0) - montant
+  const { data: t } = await supabase.from('treso').select('solde').eq('id', 1).single()
+  const newTreso = (t ? Number(t.solde) : 0) + montant
+  const semaine = getSemaine()
+  await Promise.all([
+    supabase.from('coffre').update({ solde: newCoffre, updated_at: now() }).eq('id', 1),
+    supabase.from('treso').update({ solde: newTreso, updated_at: now() }).eq('id', 1),
+    supabase.from('coffre_mouvements').insert({ id: genId('mv'), type: 'transfert_treso', montant, label: `→ Tréso : ${label}`, created_at: now() }),
+    supabase.from('treso_mouvements').insert({ id: genId('mv'), type: 'transfert_treso', montant, label: `← Coffre : ${label}`, semaine, created_at: now() }),
+  ])
+}
+
+export async function ajusterCoffre(montant: number, label: string, type: 'entree' | 'sortie' | 'ajustement'): Promise<void> {
+  const { data: cof } = await supabase.from('coffre').select('solde').eq('id', 1).single()
+  const newSolde = type === 'sortie'
+    ? (cof ? Number(cof.solde) : 0) - Math.abs(montant)
+    : (cof ? Number(cof.solde) : 0) + Math.abs(montant)
+  await Promise.all([
+    supabase.from('coffre').update({ solde: newSolde, updated_at: now() }).eq('id', 1),
+    supabase.from('coffre_mouvements').insert({ id: genId('mv'), type, montant: Math.abs(montant), label, created_at: now() }),
+  ])
+}
+
+export async function setCoffreObjectif(objectif: number): Promise<void> {
+  await supabase.from('coffre').update({ objectif, updated_at: now() }).eq('id', 1)
+}
+
+// Vérifie si la semaine a changé et clôture auto si besoin
+export async function checkResetHebdo(): Promise<void> {
+  const semaineCourante = getSemaine()
+  // Chercher le dernier mouvement de type reset
+  const { data } = await supabase
+    .from('treso_mouvements')
+    .select('semaine')
+    .eq('type', 'reset')
+    .order('created_at', { ascending: false })
+    .limit(1)
+  
+  const dernierReset = data && data.length > 0 ? String((data[0] as Record<string, unknown>).semaine) : null
+  
+  // Si on n'a pas encore reset cette semaine et qu'il y a des mouvements
+  if (dernierReset !== semaineCourante) {
+    const { data: mouvSemaine } = await supabase
+      .from('treso_mouvements')
+      .select('id')
+      .eq('semaine', semaineCourante)
+      .limit(1)
+    
+    // S'il y a des mouvements cette semaine, vérifier si c'est une nouvelle semaine
+    if (!mouvSemaine || mouvSemaine.length === 0) {
+      // Nouvelle semaine détectée, clôturer la précédente
+      const { data: t } = await supabase.from('treso').select('solde').eq('id', 1).single()
+      if (t && Number(t.solde) !== 0) {
+        await cloturerSemaineTreso()
+      }
+    }
+  }
 }
