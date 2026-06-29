@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, ShoppingBag, Package, ClipboardList, Users, Settings, LogOut, X, Menu } from 'lucide-react'
+import { LayoutDashboard, ShoppingBag, Package, ClipboardList, Users, Settings, LogOut, X, Menu, Lock } from 'lucide-react'
 import { useAuth } from '@/lib/auth-context'
 import { getRoleDisplay } from '@/lib/utils'
 import { useRouter } from 'next/navigation'
@@ -20,6 +20,7 @@ export default function Sidebar() {
     { href: '/stock', label: 'Stock', icon: Package, show: hasPermission('voir_stock') || hasPermission('gerer_stock') },
     { href: '/demandes', label: 'Demandes', icon: ClipboardList, show: hasPermission('faire_demandes') || hasPermission('gerer_demandes') },
     { href: '/membres', label: 'Membres', icon: Users, show: hasPermission('voir_membres') },
+    { href: '/coffre', label: 'Coffre', icon: Lock, show: hasPermission('voir_coffre') },
     { href: '/parametres', label: 'Paramètres', icon: Settings, show: true },
   ].filter(i => i.show)
 
