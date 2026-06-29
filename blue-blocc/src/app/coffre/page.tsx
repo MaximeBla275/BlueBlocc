@@ -36,8 +36,6 @@ export default function CoffrePage() {
   const [ajustCoffreType, setAjustCoffreType] = useState<'entree' | 'sortie'>('entree')
 
   // Objectif coffre
-  const [editObjectif, setEditObjectif] = useState(false)
-  const [objectifInput, setObjectifInput] = useState('')
 
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -116,8 +114,8 @@ export default function CoffrePage() {
     await load(); setSaving(false)
   }
 
-  const tresoPct = treso && coffre ? Math.min(100, (treso.solde / (coffre.objectif || 1500000)) * 100) : 0
-  const coffrePct = coffre ? Math.min(100, (coffre.solde / (coffre.objectif || 500000)) * 100) : 0
+  const tresoObjectif = 1500000 // Objectif CA hebdomadaire
+  const tresoPct = treso ? Math.min(100, (treso.solde / tresoObjectif) * 100) : 0
 
   const getMovColor = (type: string) => {
     if (['entree', 'transfert_treso'].includes(type)) return '#4ade80'
@@ -160,7 +158,7 @@ export default function CoffrePage() {
               <span className="text-xs px-2 py-0.5 rounded-full ml-auto" style={{ background: 'rgba(96,165,250,0.15)', color: '#60a5fa' }}>Hebdo</span>
             </div>
             <div className="text-4xl font-black mb-1" style={{ color: '#60a5fa' }}>{formatMoney(treso?.solde || 0)}</div>
-            <div className="text-xs mb-3" style={{ color: 'var(--blocc-muted)' }}>Objectif semaine : {formatMoney(coffre?.objectif || 1500000)}</div>
+            <div className="text-xs mb-3" style={{ color: 'var(--blocc-muted)' }}>Objectif CA semaine : {formatMoney(tresoObjectif)}</div>
             <div className="progress-bar mb-4">
               <div className="progress-fill" style={{ width: `${tresoPct}%`, background: tresoPct >= 100 ? 'linear-gradient(90deg,#22c55e,#4ade80)' : 'linear-gradient(90deg,#1e6bff,#00bfff)' }} />
             </div>
@@ -186,28 +184,8 @@ export default function CoffrePage() {
               <span className="text-xs px-2 py-0.5 rounded-full ml-auto" style={{ background: 'rgba(251,191,36,0.15)', color: '#fbbf24' }}>Cumulatif</span>
             </div>
             <div className="text-4xl font-black mb-1" style={{ color: '#fbbf24' }}>{formatMoney(coffre?.solde || 0)}</div>
-            <div className="flex items-center gap-2 mb-3">
-              {editObjectif ? (
-                <div className="flex items-center gap-2">
-                  <input className="input text-sm py-1 h-7 w-36" type="number" value={objectifInput}
-                    onChange={e => setObjectifInput(e.target.value)} placeholder="Objectif $" />
-                  <button className="text-xs btn-primary py-1 px-2" onClick={async () => {
-                    if (!objectifInput) return
-                    await setCoffreObjectif(Number(objectifInput))
-                    setEditObjectif(false); await load()
-                  }}>OK</button>
-                  <button className="text-xs btn-ghost py-1 px-2" onClick={() => setEditObjectif(false)}>×</button>
-                </div>
-              ) : (
-                <div className="text-xs flex items-center gap-2" style={{ color: 'var(--blocc-muted)' }}>
-                  Objectif : {formatMoney(coffre?.objectif || 500000)}
-                  {isLead && <button onClick={() => { setEditObjectif(true); setObjectifInput(String(coffre?.objectif || 500000)) }}
-                    className="opacity-60 hover:opacity-100 text-xs underline">modifier</button>}
-                </div>
-              )}
-            </div>
-            <div className="progress-bar">
-              <div className="progress-fill" style={{ width: `${coffrePct}%`, background: coffrePct >= 100 ? 'linear-gradient(90deg,#d97706,#fbbf24)' : 'linear-gradient(90deg,#92400e,#d97706)' }} />
+            <div className="text-xs mt-2" style={{ color: 'var(--blocc-muted)' }}>
+              Argent sale mis en sécurité — suivi cumulatif
             </div>
           </div>
         </div>
