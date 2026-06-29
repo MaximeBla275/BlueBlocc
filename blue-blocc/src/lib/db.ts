@@ -210,21 +210,7 @@ export async function setParametres(params: Partial<Parametres>): Promise<void> 
 
 // ─── TRESO ────────────────────────────────────────────────────────────────────
 export async function getTreso(): Promise<Treso> {
-  const [{ data: t }, { data: m }] = await Promise.all([
-    supabase.from('treso').select('*').eq('id', 1).single(),
-    supabase.from('treso_mouvements').select('*').order('created_at', { ascending: false }).limit(50),
-  ])
-  return {
-    solde: t ? Number(t.solde) : 0,
-    mouvements: (m || []).map((mv: Record<string, unknown>) => ({
-      id: String(mv.id),
-      type: mv.type as 'entree' | 'sortie' | 'init',
-      montant: Number(mv.montant),
-      label: String(mv.label),
-      ref: mv.ref ? String(mv.ref) : undefined,
-      createdAt: String(mv.created_at),
-    })),
-  }
+  return getTresoComplete()
 }
 
 async function addTresoMouvement(type: 'entree' | 'sortie', montant: number, label: string, ref?: string): Promise<void> {
