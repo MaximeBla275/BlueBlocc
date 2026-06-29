@@ -175,6 +175,7 @@ export async function getParametres(): Promise<Parametres> {
     salaireBase: p ? Number(p.salaire_base) : 30000,
     bonusMontant: p ? Number(p.bonus_montant) : 2000,
     bonusPalier: p ? Number(p.bonus_palier) : 200,
+    coffreObjectif: p ? Number(p.coffre_objectif ?? 500000) : 500000,
   }
 }
 
