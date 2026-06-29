@@ -709,3 +709,10 @@ export async function checkResetHebdo(): Promise<void> {
     }
   }
 }
+
+export async function resetTresPur(): Promise<void> {
+  await Promise.all([
+    supabase.from('treso').update({ solde: 0, updated_at: now() }).eq('id', 1),
+    supabase.from('treso_mouvements').delete().neq('id', ''),
+  ])
+}
